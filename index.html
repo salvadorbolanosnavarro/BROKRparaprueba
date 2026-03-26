@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BROKR®"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="theme-color" content="#0d1525"/>
+<title>BROKR®</title>
+<link rel="icon" href="icon-192.png"/>
+
+<!-- Fuentes -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"/>
+
+<!-- Design System (la identidad visual completa) -->
+<link rel="stylesheet" href="css/design-system.css"/>
+
+<!-- App Shell (sidebar, header, layout) -->
+<link rel="stylesheet" href="css/shell.css"/>
+</head>
+<body>
+
+<!-- Overlay para sidebar móvil -->
+<div id="sb-overlay" onclick="closeSidebar()"></div>
+
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+       ═══════════════════════════════════════════ -->
+  <aside id="sb">
+    
+    <!-- Logo — CAMBIAR AQUÍ para nuevo logo -->
+    <div class="sb-logo" onclick="showDashboard()">
+      <!-- TODO: Reemplazar con nuevo logo -->
+      <img src="icon-192.png" alt="BROKR®" style="height:28px"/>
+    </div>
+
+    <!-- Navegación de módulos -->
+    <div class="sb-nav">
+      <div class="sb-lbl">Módulos</div>
+
+      <button class="sb-btn" onclick="setPanel('ficha-manual')" data-module="ficha-manual">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Fichas manuales
+      </button>
+
+      <button class="sb-btn" onclick="setPanel('ficha')" data-module="ficha">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Fichas EasyBroker
+      </button>
+
+      <button class="sb-btn" onclick="setPanel('contratos')" data-module="contratos">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Contratos
+      </button>
+
+      <button class="sb-btn" onclick="setPanel('avm')" data-module="avm">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Opinión de valor
+      </button>
+
+      <button class="sb-btn" onclick="setPanel('isr')" data-module="isr">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Calculadora ISR
+      </button>
+
+      <button class="sb-btn" onclick="setPanel('props')" data-module="props">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Mis inmuebles
+      </button>
+
+      <!-- ─── AGREGAR MÓDULOS NUEVOS AQUÍ ───
+      <button class="sb-btn" onclick="setPanel('usuario')" data-module="usuario">
+        <svg>...</svg>
+        Mi cuenta
+      </button>
+      -->
+    </div>
+
+    <!-- Pie: info de usuario -->
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="sb-user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="sb-user-name" id="user-name-display">—</div>
+          <div class="sb-user-plan" id="user-plan-display">—</div>
+        </div>
+      </div>
+
+      <!-- Enlace admin (oculto por defecto) -->
+      <a id="admin-link-btn" class="sb-btn" href="admin.html" style="display:none" data-module="admin">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+        Panel admin
+      </a>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN AREA
+       ═══════════════════════════════════════════ -->
+  <main id="main">
+
+    <!-- HEADER -->
+    <header id="hdr">
+      <div class="hdr-left">
+        <!-- Hamburguesa (solo móvil) -->
+        <button id="ham-btn" onclick="toggleSidebar()" aria-label="Menú">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="status-dot"></div>
+        <span id="hlbl"></span>
+      </div>
+      <div class="hdr-right">
+        <button class="btn-secondary" onclick="logout()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Salir
+        </button>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+         PANELES (área de contenido)
+         ═══════════════════════════════════════════
+         Cada módulo es un panel independiente.
+         Solo uno está visible a la vez.
+         ═══════════════════════════════════════════ -->
+    <div id="panels">
+
+      <!-- DASHBOARD (pantalla principal) -->
+      <div id="dashboard" class="panel active">
+        <div class="mod-card c-blue" onclick="setPanel('ficha-manual')" data-module="ficha-manual">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Fichas manuales</div>
+          <div class="mod-desc">Crea fichas profesionales con tus fotos y descripción por IA.</div>
+          <div class="mod-tag">Presentación</div>
+        </div>
+
+        <div class="mod-card c-blue" onclick="setPanel('ficha')" data-module="ficha">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Fichas EasyBroker</div>
+          <div class="mod-desc">Genera fichas PDF desde tu CRM con un clic.</div>
+          <div class="mod-tag">EasyBroker</div>
+        </div>
+
+        <div class="mod-card c-amber" onclick="setPanel('contratos')" data-module="contratos">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Contratos</div>
+          <div class="mod-desc">Arrendamiento y promesa de compraventa con cláusulas por IA.</div>
+          <div class="mod-tag">Legal</div>
+        </div>
+
+        <div class="mod-card c-rose" onclick="setPanel('avm')" data-module="avm">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Opinión de valor</div>
+          <div class="mod-desc">Estima el valor de mercado por zona y comparables.</div>
+          <div class="mod-tag">Valuación</div>
+        </div>
+
+        <div class="mod-card c-violet" onclick="setPanel('isr')" data-module="isr">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Calculadora ISR</div>
+          <div class="mod-desc">ISR por enajenación. Arts. 119–128 + 152 LISR.</div>
+          <div class="mod-tag">Fiscal</div>
+        </div>
+
+        <div class="mod-card c-emerald" onclick="setPanel('props')" data-module="props">
+          <div class="mod-head">
+            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+          </div>
+          <div class="mod-title">Mis inmuebles</div>
+          <div class="mod-desc">Gestiona tu portafolio con fotos y especificaciones.</div>
+          <div class="mod-tag">Portafolio</div>
+        </div>
+      </div>
+
+      <!-- ═══ PANELES DE MÓDULOS ═══
+           Cada uno es independiente.
+           Si un iframe falla, los demás siguen funcionando. -->
+
+      <div id="panel-ficha-manual" class="panel">
+        <iframe src="ficha-manual.html" class="panel-iframe"></iframe>
+      </div>
+
+      <div id="panel-ficha" class="panel">
+        <iframe src="ficha.html" class="panel-iframe"></iframe>
+      </div>
+
+      <div id="panel-contratos" class="panel">
+        <iframe src="contratos.html" class="panel-iframe"></iframe>
+      </div>
+
+      <div id="panel-avm" class="panel">
+        <iframe src="avm.html" class="panel-iframe"></iframe>
+      </div>
+
+      <div id="panel-isr" class="panel">
+        <iframe src="modulos/isr.html" class="panel-iframe"></iframe>
+      </div>
+
+      <div id="panel-props" class="panel">
+        <iframe src="modulos/propiedades.html" class="panel-iframe"></iframe>
+      </div>
+
+      <!-- ─── AGREGAR PANELES DE MÓDULOS NUEVOS AQUÍ ───
+      <div id="panel-usuario" class="panel">
+        <iframe src="modulos/usuario.html" class="panel-iframe"></iframe>
+      </div>
+      -->
+
+    </div><!-- /panels -->
+  </main>
+</div><!-- /app -->
+
+<!-- ═══ CHAT FLOTANTE ═══ -->
+<div id="chat-overlay" onclick="closeChatFloat()"></div>
+
+<div id="chat-window">
+  <!-- El chat se cargará como módulo independiente en Fase 3 -->
+</div>
+
+<button id="chat-fab" onclick="toggleChatFloat()" title="Chat con IA" aria-label="Abrir chat">
+  <span class="fab-open"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></span>
+  <span class="fab-close"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>
+</button>
+
+<!-- ═══ SCRIPTS ═══ -->
+<!-- Servicios compartidos (auth, supabase, formateo) -->
+<script src="js/services.js"></script>
+
+<!-- Router de paneles (navegación) -->
+<script src="js/router.js"></script>
+
+</body>
+</html>

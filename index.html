@@ -5,278 +5,1987 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="BROKR®"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Brokr"/>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icon-192.png"/>
-<meta name="theme-color" content="#0d1525"/>
-<title>BROKR®</title>
-<link rel="icon" href="icon-192.png"/>
-
-<!-- Fuentes -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<meta name="theme-color" content="#0f1829"/>
+<link rel="icon" href="favicon.png"/>
+<title>Brokr</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════
+   BROKR® — DESIGN SYSTEM
+   Poppins · Navy / Teal / Blanco
+══════════════════════════════════════════ */
+:root {
+  --navy:       #0f1829;
+  --navy-mid:   #162035;
+  --navy-light: #1e2d47;
+  --teal:       #2a9db5;
+  --teal-dark:  #1a7a8f;
+  --teal-glow:  rgba(42,157,181,0.18);
+  --white:      #ffffff;
+  --gray-100:   #f5f6f8;
+  --gray-200:   #e8eaee;
+  --gray-400:   #9aa0ad;
+  --gray-600:   #5a6070;
+  --text:       #1a2035;
+  --screen-bg:  #f0f2f7;
+  /* Legacy aliases para ISR/props que las usan */
+  --bg:    #f0f2f7;
+  --bg2:   #f5f6f8;
+  --bg3:   #e8eaee;
+  --sf:    #ffffff;
+  --sf2:   #f0f2f7;
+  --bd:    rgba(0,0,0,0.08);
+  --bd2:   rgba(0,0,0,0.13);
+  --txt:   #1a2035;
+  --mut:   #5a6070;
+  --mut2:  #9aa0ad;
+  --r:  18px; --r2: 14px; --r3: 10px;
+  /* Module accent colors (for ISR results) */
+  --amber: #f59e0b; --amber2: #fbbf24;
+  --rose:  #f43f5e; --rose2:  #fb7185;
+  --violet:#8b5cf6; --violet2:#a78bfa;
+  --emerald:#10b981; --emerald2:#34d399;
+  --sky:   #0ea5e9; --sky2:   #38bdf8;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --topbar: 0px;
+}
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    :root { --safe-top: max(env(safe-area-inset-top, 0px), 44px); }
+  }
+}
 
-<!-- Design System (la identidad visual completa) -->
-<link rel="stylesheet" href="css/design-system.css"/>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body {
+  font-family: 'Poppins', sans-serif;
+  background: var(--screen-bg);
+  color: var(--text);
+  height: 100%;
+  overflow: hidden;
+}
 
-<!-- App Shell (sidebar, header, layout) -->
-<link rel="stylesheet" href="css/shell.css"/>
+/* ══ APP SHELL ══ */
+#app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ══ SCREENS LAYER ══ */
+#screens-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.proto-screen {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  -webkit-overflow-scrolling: touch;
+}
+.proto-screen.active-screen {
+  opacity: 1;
+  pointer-events: all;
+}
+.proto-screen::-webkit-scrollbar { display: none; }
+
+/* ══ HOME SCREEN ══ */
+#screen-home { background: var(--screen-bg); padding-bottom: 90px; }
+
+.home-header {
+  background: var(--navy);
+  padding: calc(var(--safe-top) + 20px) 24px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.home-header::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(42,157,181,0.25) 0%, transparent 70%);
+}
+
+.greeting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.greeting-text .hello {
+  font-size: 12px;
+  color: var(--teal);
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.greeting-text .name {
+  font-size: 26px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.home-avatar {
+  width: 46px; height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: white;
+  border: 2px solid rgba(255,255,255,0.15);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.stat-pill {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.stat-pill .val {
+  font-size: 20px; font-weight: 800; color: white;
+}
+.stat-pill .lbl {
+  font-size: 10px; color: rgba(255,255,255,0.5);
+  margin-top: 1px; font-weight: 500;
+}
+.stat-pill.accent .val { color: var(--teal); }
+
+/* Section titles */
+.section-title {
+  padding: 20px 20px 10px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.section-title h3 {
+  font-size: 15px; font-weight: 700; color: var(--text);
+}
+.section-title a {
+  font-size: 12px; color: var(--teal); font-weight: 600;
+  cursor: pointer; text-decoration: none;
+}
+
+/* Module cards grid */
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.module-card {
+  background: white;
+  border-radius: 20px;
+  padding: 18px 16px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  position: relative; overflow: hidden;
+}
+.module-card:active { transform: scale(0.97); }
+.module-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  border-radius: 20px 20px 0 0;
+}
+.module-card.teal::before  { background: var(--teal); }
+.module-card.white::before { background: rgba(0,0,0,0.12); }
+.module-card.navy::before  { background: var(--navy); }
+.module-card.green::before { background: #3db88a; }
+.module-card.violet::before{ background: #8b5cf6; }
+
+.module-icon {
+  width: 44px; height: 44px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 12px;
+}
+.module-card.teal  .module-icon { background: rgba(42,157,181,0.12); }
+.module-card.white .module-icon { background: rgba(0,0,0,0.06); }
+.module-card.navy  .module-icon { background: rgba(15,24,41,0.08); }
+.module-card.green .module-icon { background: rgba(61,184,138,0.12); }
+.module-card.violet.module-icon { background: rgba(139,92,246,0.12); }
+
+.module-card .mod-name {
+  font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2;
+}
+.module-card .mod-desc {
+  font-size: 11px; color: var(--gray-400); margin-top: 4px; font-weight: 400;
+}
+
+/* Activity list */
+.activity-list {
+  padding: 0 16px 20px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.activity-item {
+  background: white; border-radius: 16px;
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.act-icon {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--gray-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+}
+.act-text .act-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.act-text .act-sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+.act-time { margin-left: auto; font-size: 11px; color: var(--gray-400); white-space: nowrap; }
+
+/* ══ MÓDULOS SCREEN ══ */
+#screen-modules { background: var(--screen-bg); padding-bottom: 90px; }
+
+.modules-header {
+  background: var(--navy);
+  padding: calc(var(--safe-top) + 16px) 24px 24px;
+}
+.modules-header h2 {
+  font-size: 22px; font-weight: 800; color: white; margin-bottom: 14px;
+}
+.search-bar {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  color: rgba(255,255,255,0.6); font-size: 13px; cursor: pointer;
+}
+
+.category-block { padding: 18px 16px 0; }
+.cat-title {
+  font-size: 10px; font-weight: 700; color: var(--gray-400);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  margin-bottom: 12px; padding-left: 4px;
+}
+.cat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 4px;
+}
+.cat-module {
+  background: white; border-radius: 18px;
+  padding: 16px 10px 14px; text-align: center; cursor: pointer;
+  transition: transform 0.15s;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+}
+.cat-module:active { transform: scale(0.95); }
+.cat-mod-icon {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin: 0 auto 10px;
+}
+.cat-mod-name { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.cat-teal   .cat-mod-icon { background: rgba(42,157,181,0.12); }
+.cat-white  .cat-mod-icon { background: rgba(0,0,0,0.06); }
+.cat-navy   .cat-mod-icon { background: rgba(15,24,41,0.08); }
+.cat-green  .cat-mod-icon { background: rgba(61,184,138,0.12); }
+.cat-purple .cat-mod-icon { background: rgba(139,92,246,0.12); }
+
+/* ══ PERFIL SCREEN ══ */
+#screen-profile { background: var(--screen-bg); padding-bottom: 90px; }
+
+.profile-header {
+  background: var(--navy);
+  padding: calc(var(--safe-top) + 20px) 24px 32px;
+  text-align: center; position: relative;
+}
+.profile-avatar {
+  width: 80px; height: 80px; border-radius: 26px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 800; color: white;
+  margin: 0 auto 12px;
+  border: 3px solid rgba(255,255,255,0.15);
+  box-shadow: 0 8px 24px rgba(42,157,181,0.3);
+}
+.profile-name { font-size: 22px; font-weight: 800; color: white; }
+.profile-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+.profile-badge {
+  display: inline-block;
+  background: rgba(42,157,181,0.2); border: 1px solid rgba(42,157,181,0.4);
+  color: var(--teal); font-size: 11px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px; margin-top: 8px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.profile-section {
+  margin: 16px 16px 0;
+  background: white; border-radius: 20px; overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+}
+.profile-row {
+  display: flex; align-items: center;
+  padding: 16px 18px; gap: 14px; cursor: pointer;
+  transition: background 0.1s;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.profile-row:last-child { border-bottom: none; }
+.profile-row:active { background: var(--gray-100); }
+.pr-icon {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: var(--gray-100);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+.pr-text { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+.pr-arrow { color: var(--gray-400); font-size: 14px; }
+
+/* ══ MOD PANELS (full screen, inside screens-container) ══ */
+.mod-panel {
+  position: absolute; inset: 0;
+  display: none; flex-direction: column;
+  overflow: hidden;
+  background: var(--screen-bg);
+}
+.mod-panel.active { display: flex; }
+
+.panel-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 20px; padding-bottom: 80px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Panel back button */
+.panel-topbar {
+  background: var(--navy);
+  padding: calc(var(--safe-top) + 0px) 16px 0;
+  height: calc(60px + var(--safe-top));
+  display: flex; align-items: flex-end; padding-bottom: 12px;
+  gap: 12px; flex-shrink: 0;
+}
+.panel-back {
+  width: 36px; height: 36px; border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.panel-title {
+  font-size: 16px; font-weight: 700; color: white;
+}
+
+/* ══ ISR STYLES (preservados, actualizados) ══ */
+.isr-hdr { margin-bottom: 16px; }
+.isr-hdr-title {
+  font-size: 17px; font-weight: 800;
+  color: var(--text); display: flex; align-items: center;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 4px;
+}
+.isr-badge {
+  font-size: 9px; font-weight: 700;
+  background: rgba(139,92,246,0.15); color: var(--violet2);
+  padding: 3px 9px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.isr-hdr-sub { font-size: 12px; color: var(--mut); line-height: 1.5; }
+.isr-card {
+  background: #fff; border: 1px solid rgba(0,0,0,0.08);
+  border-radius: var(--r); padding: 18px; margin-bottom: 12px;
+}
+.isr-card-lbl {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--violet2);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+}
+.isr-opt { font-size: 9px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--mut); font-style: italic; }
+.isr-row1 { margin-bottom: 10px; }
+.isr-row1:last-child { margin-bottom: 0; }
+.isr-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.isr-row2:last-child { margin-bottom: 0; }
+.isr-f { display: flex; flex-direction: column; gap: 4px; }
+.isr-f label { font-size: 10px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; }
+.isr-f input, .isr-f select {
+  width: 100%; padding: 9px 11px;
+  background: var(--gray-100); border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--r3); color: var(--text);
+  font-size: 13px; font-family: 'Poppins', sans-serif; outline: none; transition: border-color .2s;
+}
+.isr-f input:focus, .isr-f select:focus { border-color: var(--violet); background: #fff; }
+.isr-f input::placeholder { color: var(--mut2); }
+.isr-hint { font-size: 10px; color: var(--violet2); margin-top: 2px; }
+.isr-alert-warn { border-radius: var(--r3); padding: 9px 12px; font-size: 12px; line-height: 1.5; margin-top: 10px; background: rgba(245,158,11,.1); border-left: 3px solid var(--amber); color: var(--amber2); }
+.isr-alert-info { border-radius: var(--r3); padding: 9px 12px; font-size: 12px; line-height: 1.5; margin-top: 10px; background: rgba(59,130,246,.1); border-left: 3px solid #3b82f6; color: #93c5fd; }
+.isr-inpc-status { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r3); padding: 10px 14px; margin-bottom: 12px; font-size: 12px; }
+.isr-spin { width: 13px; height: 13px; border: 2px solid rgba(0,0,0,0.1); border-top-color: var(--violet); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.isr-calc-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--violet), #7c3aed);
+  border: none; border-radius: var(--r2); color: #fff;
+  font-size: 14px; font-weight: 700; font-family: 'Poppins', sans-serif;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; gap: 8px; transition: opacity .2s, transform .15s;
+  box-shadow: 0 4px 20px rgba(139,92,246,.4);
+}
+.isr-calc-btn:hover { opacity: .9; transform: translateY(-1px); }
+.isr-calc-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+#res { margin-top: 0; }
+.res-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.res-back-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid rgba(0,0,0,0.15); border-radius: var(--r3);
+  padding: 7px 12px; color: var(--mut); font-size: 12px;
+  font-family: 'Poppins', sans-serif; cursor: pointer; transition: all .15s;
+}
+.res-back-btn:hover { color: var(--text); border-color: var(--text); }
+.res-tipo-lbl { font-size: 11px; font-weight: 700; background: rgba(139,92,246,.15); color: var(--violet2); padding: 4px 10px; border-radius: 20px; }
+#res-cards, .res-cards-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; margin-bottom: 14px; }
+.rc { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r2); padding: 14px; }
+.rc.gn { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.25); }
+.rc.dk { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.25); }
+.rc-l { font-size: 10px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
+.rc-v { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1.1; margin-bottom: 3px; word-break: break-word; }
+.rc.gn .rc-v { color: #34d399; } .rc.dk .rc-v { color: #f87171; }
+.rc-n { font-size: 10px; color: var(--mut); line-height: 1.4; }
+.res-inpc-row { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r2); padding: 12px 14px; margin-bottom: 12px; flex-wrap: wrap; }
+.res-inpc-cell { flex: 1; min-width: 80px; text-align: center; }
+.res-inpc-cell.hl .res-inpc-val { color: var(--violet2); }
+.res-inpc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: var(--mut); margin-bottom: 3px; }
+.res-inpc-val { font-size: 15px; font-weight: 700; color: var(--navy); }
+.res-inpc-arr { color: var(--mut); font-size: 16px; flex-shrink: 0; }
+.res-bkdn { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r2); padding: 14px; margin-bottom: 12px; }
+.br { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 12px; }
+.br:last-child { border-bottom: none; }
+.br.tot { font-weight: 700; font-size: 13px; }
+.br.sub { padding-left: 14px; color: var(--mut); }
+.bl { color: var(--mut); } .br.tot .bl { color: var(--text); }
+.bv { font-weight: 600; color: var(--navy); }
+.res-nota { background: rgba(59,130,246,.08); border-left: 3px solid #3b82f6; border-radius: 0 var(--r3) var(--r3) 0; padding: 11px 14px; font-size: 12px; line-height: 1.55; color: #3b82f6; margin-bottom: 12px; }
+.ai-box { background: var(--teal-glow); border: 1px solid rgba(42,157,181,.2); border-radius: var(--r2); padding: 14px; margin-bottom: 12px; }
+.ai-lbl { font-size: 11px; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+#ai-txt { font-size: 12px; line-height: 1.6; color: var(--text); }
+
+/* ══ PROPS STYLES ══ */
+.props-toolbar {
+  padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.08);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  background: #fff; flex-wrap: wrap;
+}
+.props-search-wrap {
+  flex: 1; min-width: 180px; position: relative;
+  display: flex; align-items: center;
+  background: var(--gray-100); border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--r3); padding: 0 10px 0 32px;
+}
+.props-search-wrap svg { position: absolute; left: 10px; opacity: .4; }
+.props-search-wrap input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-size: 13px; padding: 8px 0; font-family: 'Poppins', sans-serif;
+}
+.props-search-wrap input::placeholder { color: var(--gray-400); }
+.props-toolbar select {
+  padding: 7px 10px; background: var(--gray-100); border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--r3); color: var(--mut); font-size: 12px;
+  font-family: 'Poppins', sans-serif; outline: none; cursor: pointer;
+}
+.props-new-btn {
+  padding: 8px 14px; background: var(--emerald); border: none;
+  border-radius: var(--r3); color: #fff; font-size: 12px; font-weight: 600;
+  font-family: 'Poppins', sans-serif; cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px; transition: background .15s;
+  flex-shrink: 0; box-shadow: 0 2px 12px rgba(16,185,129,.3);
+}
+.props-new-btn:hover { opacity: .9; }
+.props-grid {
+  flex: 1; overflow-y: auto; padding: 14px 16px;
+  display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+  gap: 10px; align-content: start;
+}
+.props-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--mut); }
+.prop-card {
+  background: #fff; border: 1px solid rgba(0,0,0,0.08);
+  border-radius: var(--r); overflow: hidden; cursor: pointer;
+  transition: all .18s; display: flex; flex-direction: column;
+}
+.prop-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,.1); }
+.prop-card-img img, .prop-card-img { width: 100%; height: 140px; object-fit: cover; display: block; background: var(--gray-100); }
+.prop-card-body { padding: 11px 12px; flex: 1; }
+.prop-card-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.prop-card-title { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; line-height: 1.3; }
+.prop-card-loc { font-size: 11px; color: var(--gray-400); margin-bottom: 5px; }
+.prop-card-price { color: var(--emerald); font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.prop-card-specs { display: flex; flex-wrap: wrap; gap: 4px; }
+.prop-card-specs span { font-size: 10px; background: var(--gray-100); padding: 2px 6px; border-radius: 4px; color: var(--mut); }
+.prop-card-actions { display: flex; gap: 6px; padding: 0 12px 10px; }
+.prop-act-btn {
+  flex: 1; padding: 6px; border-radius: var(--r3); border: 1px solid rgba(0,0,0,0.1);
+  background: none; color: var(--mut); font-size: 11px; cursor: pointer;
+  font-family: 'Poppins', sans-serif; transition: all .15s; text-align: center;
+}
+.prop-act-del:hover { background: rgba(239,68,68,.1); color: #fca5a5; border-color: rgba(239,68,68,.3); }
+.badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing: .3px; }
+.badge-venta { background: rgba(42,157,181,.14); color: var(--teal); }
+.badge-renta { background: rgba(14,165,233,.14); color: var(--sky2); }
+.badge-activa { background: rgba(16,185,129,.14); color: var(--emerald2); }
+.badge-vendida { background: rgba(245,158,11,.14); color: var(--amber2); }
+.badge-rentada { background: rgba(139,92,246,.14); color: var(--violet2); }
+.badge-suspendida { background: rgba(0,0,0,.06); color: var(--mut); }
+
+/* ══ MODAL STYLES ══ */
+.prop-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); z-index: 300;
+  align-items: center; justify-content: center; padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.prop-modal-overlay.open { display: flex; }
+.prop-modal-box {
+  background: #fff; border: 1px solid rgba(0,0,0,0.1);
+  border-radius: var(--r); width: 100%; max-width: 540px;
+  max-height: 90vh; overflow-y: auto;
+}
+.prop-modal-hdr {
+  padding: 18px 20px 14px; border-bottom: 1px solid rgba(0,0,0,0.08);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: #fff; z-index: 10;
+}
+.prop-modal-hdr h3 { font-size: 15px; font-weight: 700; }
+.prop-modal-close {
+  width: 28px; height: 28px; background: var(--gray-100);
+  border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; color: var(--mut);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all .15s;
+}
+.prop-modal-close:hover { background: rgba(239,68,68,.1); color: #e05252; }
+.prop-modal-body { padding: 18px 20px; }
+.pf-section {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--teal); margin: 16px 0 10px;
+}
+.pf-section:first-child { margin-top: 0; }
+.pf-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 0; }
+.pf-row + .pf-row { margin-top: 10px; }
+.pf-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.pf-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.pf-field { display: flex; flex-direction: column; gap: 4px; }
+.pf-field.full { grid-column: 1/-1; }
+.pf-field label { font-size: 10px; font-weight: 700; color: var(--mut); text-transform: uppercase; letter-spacing: .6px; }
+.pf-field input, .pf-field textarea, .pf-field select {
+  width: 100%; padding: 8px 10px; background: var(--gray-100);
+  border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r3);
+  color: var(--text); font-size: 12.5px; font-family: 'Poppins', sans-serif; outline: none;
+  transition: border-color .2s;
+}
+.pf-field input:focus, .pf-field textarea:focus, .pf-field select:focus { border-color: var(--teal); background: #fff; }
+.pf-field textarea { resize: vertical; min-height: 60px; }
+.pf-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(0,0,0,0.08);
+}
+.pf-cancel-btn {
+  background: none; border: 1px solid rgba(0,0,0,0.15); color: var(--mut);
+  padding: 8px 16px; border-radius: var(--r3); font-size: 13px;
+  cursor: pointer; font-family: 'Poppins', sans-serif; transition: all .15s;
+}
+.pf-save-btn {
+  background: var(--teal); border: none; color: #fff;
+  padding: 8px 20px; border-radius: var(--r3); font-size: 13px;
+  font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 2px 12px rgba(42,157,181,.3);
+}
+#fotos-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.foto-preview-item { position: relative; }
+.foto-preview-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; display: block; }
+.foto-preview-item button {
+  position: absolute; top: -4px; right: -4px;
+  width: 17px; height: 17px; background: #ef4444;
+  border: none; border-radius: 50%; color: #fff;
+  font-size: 9px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.detail-gallery { display: grid; grid-template-columns: repeat(auto-fill,minmax(120px,1fr)); gap: 6px; margin-bottom: 14px; }
+.detail-gallery img { width: 100%; height: 90px; object-fit: cover; border-radius: 8px; cursor: pointer; }
+.detail-price-hero { font-size: 26px; font-weight: 800; color: var(--emerald); margin-bottom: 4px; }
+.detail-loc { font-size: 12px; color: var(--mut); margin-bottom: 14px; }
+.detail-desc { font-size: 12px; color: var(--mut); line-height: 1.6; padding: 10px; background: var(--gray-100); border-radius: 8px; margin-bottom: 12px; }
+.detail-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.detail-info-item { background: var(--gray-100); border-radius: 8px; padding: 8px 10px; }
+.detail-info-item label { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: var(--mut); display: block; margin-bottom: 2px; }
+.detail-info-item span { font-size: 12.5px; font-weight: 600; }
+
+/* ══ IFRAME PANELS ══ */
+.iframe-panel { width: 100%; height: 100%; border: none; display: block; flex: 1; }
+
+/* ══ SHAARK FAB ══ */
+.shaark-fab {
+  position: fixed;
+  bottom: calc(80px + 12px);
+  right: 16px;
+  z-index: 200;
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 10px;
+}
+.shaark-chat-window {
+  width: min(290px, calc(100vw - 40px));
+  background: var(--navy); border-radius: 20px; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  border: 1px solid rgba(42,157,181,0.25);
+  display: none; flex-direction: column;
+  max-height: min(380px, calc(100dvh - 200px));
+}
+.shaark-chat-window.open { display: flex; animation: popIn .2s cubic-bezier(.16,1,.3,1); }
+@keyframes popIn { from { opacity:0; transform:scale(.88); } to { opacity:1; transform:scale(1); } }
+
+.scw-header {
+  padding: 12px 14px; display: flex; align-items: center; gap: 9px;
+  border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+}
+.scw-avatar {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+}
+.scw-name { font-size: 13px; font-weight: 700; color: white; }
+.scw-status { font-size: 10px; color: var(--teal); font-weight: 500; }
+.scw-close {
+  margin-left: auto; width: 26px; height: 26px;
+  border-radius: 8px; background: rgba(255,255,255,0.08);
+  border: none; color: rgba(255,255,255,0.5); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+.scw-messages {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.scw-messages::-webkit-scrollbar { display: none; }
+.scw-bubble {
+  max-width: 90%; padding: 8px 11px; border-radius: 13px;
+  font-size: 12px; line-height: 1.45;
+}
+.scw-bubble.bot {
+  background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.88);
+  border-bottom-left-radius: 4px; align-self: flex-start;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.scw-bubble.user {
+  background: var(--teal); color: white;
+  border-bottom-right-radius: 4px; align-self: flex-end;
+}
+
+.scw-chips {
+  display: flex; gap: 5px; flex-wrap: wrap; padding: 0 12px 6px;
+}
+.scw-chip {
+  background: rgba(42,157,181,0.15); border: 1px solid rgba(42,157,181,0.3);
+  border-radius: 14px; padding: 5px 10px; font-size: 10px;
+  color: var(--teal); cursor: pointer; font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+}
+.scw-chip:active { background: rgba(42,157,181,0.3); }
+
+.scw-input-row {
+  display: flex; gap: 7px; padding: 8px 12px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+}
+.scw-input {
+  flex: 1; background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+  padding: 8px 12px; font-size: 12px; color: white;
+  font-family: 'Poppins', sans-serif; outline: none;
+}
+.scw-input::placeholder { color: rgba(255,255,255,0.28); }
+.scw-send {
+  width: 34px; height: 34px; border-radius: 11px;
+  background: var(--teal); border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: white; flex-shrink: 0;
+}
+
+.shaark-fab-btn {
+  width: 54px; height: 54px; border-radius: 18px;
+  background: var(--navy); border: 2px solid rgba(42,157,181,0.45);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(42,157,181,0.2);
+  transition: transform 0.15s; position: relative;
+}
+.shaark-fab-btn:active { transform: scale(0.93); }
+.shaark-fab-btn.open { background: var(--teal); border-color: var(--teal); }
+.fab-pulse {
+  position: absolute; top: -2px; right: -2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #22c55e; border: 2px solid var(--screen-bg);
+}
+
+/* ══ BOTTOM NAV ══ */
+.proto-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 80px; background: white;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 0 8px 12px; z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+.proto-nav-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; cursor: pointer; padding: 8px 20px;
+  border-radius: 16px; transition: background 0.15s; flex: 1;
+}
+.proto-nav-item:active { background: var(--gray-100); }
+.proto-nav-icon { font-size: 22px; opacity: 0.35; transition: opacity 0.15s, transform 0.15s; }
+.proto-nav-label { font-size: 10px; font-weight: 600; color: var(--gray-400); letter-spacing: 0.3px; transition: color 0.15s; }
+.proto-nav-item.active .proto-nav-icon { opacity: 1; transform: scale(1.1); }
+.proto-nav-item.active .proto-nav-label { color: var(--teal); }
+
+/* ══ CLOSE BAR (for mod panels) ══ */
+#close-bar {
+  display: none; position: fixed;
+  top: calc(var(--safe-top) + 14px); right: 16px; z-index: 195;
+}
+#close-bar button {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--navy); border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.75); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3); transition: all .15s;
+}
+#close-bar button:hover { background: rgba(239,68,68,.4); color: #fff; }
+
+/* ══ LOADER ══ */
+.dots span {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--teal); margin: 0 2px; animation: blink 1.2s ease infinite;
+}
+.dots span:nth-child(2) { animation-delay: .2s; }
+.dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+/* ══ ANIMATIONS ══ */
+@keyframes fadeInUp {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.anim-1 { animation: fadeInUp .4s ease .05s both; }
+.anim-2 { animation: fadeInUp .4s ease .12s both; }
+.anim-3 { animation: fadeInUp .4s ease .2s both; }
+.anim-4 { animation: fadeInUp .4s ease .28s both; }
+.anim-5 { animation: fadeInUp .4s ease .36s both; }
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:400px) {
+  .quick-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px; }
+  .cat-grid { grid-template-columns: repeat(3,1fr); gap: 8px; }
+}
+</style>
 </head>
 <body>
 
-<!-- Overlay para sidebar móvil -->
-<div id="sb-overlay" onclick="closeSidebar()"></div>
-
 <div id="app">
+  <div id="screens-container">
 
-  <!-- ═══════════════════════════════════════════
-       SIDEBAR
-       ═══════════════════════════════════════════ -->
-  <aside id="sb">
-    
-    <!-- Logo — CAMBIAR AQUÍ para nuevo logo -->
-    <div class="sb-logo" onclick="showDashboard()">
-      <!-- TODO: Reemplazar con nuevo logo -->
-      <img src="icon-192.png" alt="BROKR®" style="height:28px"/>
-    </div>
-
-    <!-- Navegación de módulos -->
-    <div class="sb-nav">
-      <div class="sb-lbl">Módulos</div>
-
-      <button class="sb-btn" onclick="setPanel('ficha-manual')" data-module="ficha-manual">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        Fichas manuales
-      </button>
-
-      <button class="sb-btn" onclick="setPanel('ficha')" data-module="ficha">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-        Fichas EasyBroker
-      </button>
-
-      <button class="sb-btn" onclick="setPanel('contratos')" data-module="contratos">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Contratos
-      </button>
-
-      <button class="sb-btn" onclick="setPanel('avm')" data-module="avm">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-        Opinión de valor
-      </button>
-
-      <button class="sb-btn" onclick="setPanel('isr')" data-module="isr">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-        Calculadora ISR
-      </button>
-
-      <button class="sb-btn" onclick="setPanel('props')" data-module="props">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Mis inmuebles
-      </button>
-
-      <!-- ─── AGREGAR MÓDULOS NUEVOS AQUÍ ───
-      <button class="sb-btn" onclick="setPanel('usuario')" data-module="usuario">
-        <svg>...</svg>
-        Mi cuenta
-      </button>
-      -->
-    </div>
-
-    <!-- Pie: info de usuario -->
-    <div class="sb-foot">
-      <div class="sb-user">
-        <div class="sb-user-avatar" id="user-avatar">?</div>
-        <div>
-          <div class="sb-user-name" id="user-name-display">—</div>
-          <div class="sb-user-plan" id="user-plan-display">—</div>
+    <!-- ══ HOME ══ -->
+    <div class="proto-screen active-screen" id="screen-home">
+      <div class="home-header">
+        <div class="greeting-row">
+          <div class="greeting-text">
+            <div class="hello">Buenos días</div>
+            <div class="name" id="greet-text">¡Hola!</div>
+          </div>
+          <div class="home-avatar" id="user-avatar" onclick="protoGoTo('profile')">?</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-pill"><div class="val">—</div><div class="lbl">Propiedades</div></div>
+          <div class="stat-pill accent"><div class="val">—</div><div class="lbl">Contratos</div></div>
+          <div class="stat-pill"><div class="val">—</div><div class="lbl">Este mes</div></div>
         </div>
       </div>
 
-      <!-- Enlace admin (oculto por defecto) -->
-      <a id="admin-link-btn" class="sb-btn" href="admin.html" style="display:none" data-module="admin">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-        Panel admin
-      </a>
+      <div class="section-title anim-2">
+        <h3>Accesos rápidos</h3>
+        <a onclick="protoGoTo('modules')">Ver todos →</a>
+      </div>
+      <div class="quick-grid anim-3">
+        <div class="module-card teal" onclick="setPanel('ficha-manual')">
+          <div class="module-icon">📝</div>
+          <div class="mod-name">Fichas técnicas</div>
+          <div class="mod-desc">Crea en segundos</div>
+        </div>
+        <div class="module-card teal" onclick="setPanel('ficha')">
+          <div class="module-icon">🏷️</div>
+          <div class="mod-name">Fichas EasyBroker</div>
+          <div class="mod-desc">Solo con el ID</div>
+        </div>
+        <div class="module-card white" onclick="setPanel('isr')">
+          <div class="module-icon">🧮</div>
+          <div class="mod-name">Calculadora ISR</div>
+          <div class="mod-desc">Cálculo exacto</div>
+        </div>
+        <div class="module-card green" onclick="setPanel('avm')">
+          <div class="module-icon">📊</div>
+          <div class="mod-name">Opinión de valor</div>
+          <div class="mod-desc">AVM inteligente</div>
+        </div>
+      </div>
+
+      <div class="section-title anim-4" style="margin-top:8px">
+        <h3>Más módulos</h3>
+      </div>
+      <div class="quick-grid anim-5" style="margin-bottom:20px">
+        <div class="module-card navy" onclick="setPanel('contratos')">
+          <div class="module-icon">📄</div>
+          <div class="mod-name">Contratos</div>
+          <div class="mod-desc">En menos de 5 min</div>
+        </div>
+        <div class="module-card violet" onclick="setPanel('props')">
+          <div class="module-icon">🏘️</div>
+          <div class="mod-name">Mis inmuebles</div>
+          <div class="mod-desc">Gestión completa</div>
+        </div>
+      </div>
     </div>
-  </aside>
 
-  <!-- ═══════════════════════════════════════════
-       MAIN AREA
-       ═══════════════════════════════════════════ -->
-  <main id="main">
+    <!-- ══ MÓDULOS ══ -->
+    <div class="proto-screen" id="screen-modules">
+      <div class="modules-header">
+        <h2>Módulos</h2>
+        <div class="search-bar"><span>🔍</span><span style="font-family:'Poppins',sans-serif">Buscar módulo...</span></div>
+      </div>
+      <div style="padding-bottom:90px">
+        <div class="category-block">
+          <div class="cat-title">📋 Documentos</div>
+          <div class="cat-grid">
+            <div class="cat-module cat-teal" onclick="setPanel('ficha-manual')">
+              <div class="cat-mod-icon">📝</div><div class="cat-mod-name">Ficha Manual</div>
+            </div>
+            <div class="cat-module cat-teal" onclick="setPanel('ficha')">
+              <div class="cat-mod-icon">🏷️</div><div class="cat-mod-name">Ficha EasyBroker</div>
+            </div>
+            <div class="cat-module cat-navy" onclick="setPanel('contratos')">
+              <div class="cat-mod-icon">📄</div><div class="cat-mod-name">Contratos</div>
+            </div>
+          </div>
+        </div>
+        <div class="category-block">
+          <div class="cat-title">💰 Finanzas</div>
+          <div class="cat-grid">
+            <div class="cat-module cat-white" onclick="setPanel('isr')">
+              <div class="cat-mod-icon">🧮</div><div class="cat-mod-name">ISR</div>
+            </div>
+          </div>
+        </div>
+        <div class="category-block">
+          <div class="cat-title">🏠 Propiedades</div>
+          <div class="cat-grid">
+            <div class="cat-module cat-purple" onclick="setPanel('props')">
+              <div class="cat-mod-icon">🏘️</div><div class="cat-mod-name">Mis Inmuebles</div>
+            </div>
+            <div class="cat-module cat-green" onclick="setPanel('avm')">
+              <div class="cat-mod-icon">📊</div><div class="cat-mod-name">AVM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- HEADER -->
-    <header id="hdr">
-      <div class="hdr-left">
-        <!-- Hamburguesa (solo móvil) -->
-        <button id="ham-btn" onclick="toggleSidebar()" aria-label="Menú">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    <!-- ══ PERFIL ══ -->
+    <div class="proto-screen" id="screen-profile">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-sub" id="profile-sub">Agente Inmobiliario · Morelia</div>
+        <div class="profile-badge" id="profile-plan">Pro</div>
+      </div>
+      <div style="padding-bottom:90px">
+        <div class="profile-section" style="margin-top:20px">
+          <div class="profile-row"><div class="pr-icon">👤</div><span class="pr-text">Mi perfil</span><span class="pr-arrow">›</span></div>
+          <div class="profile-row"><div class="pr-icon">🔑</div><span class="pr-text">API EasyBroker</span><span class="pr-arrow">›</span></div>
+          <div class="profile-row"><div class="pr-icon">🔔</div><span class="pr-text">Notificaciones</span><span class="pr-arrow">›</span></div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-row"><div class="pr-icon">💳</div><span class="pr-text">Suscripción</span><span class="pr-arrow">›</span></div>
+          <div class="profile-row"><div class="pr-icon">🆘</div><span class="pr-text">Soporte</span><span class="pr-arrow">›</span></div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-row" onclick="logout()"><div class="pr-icon">🚪</div><span class="pr-text" style="color:#e05252">Cerrar sesión</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MOD PANELS ══ -->
+    <div id="panel-isr" class="mod-panel">
+      <div class="panel-scroll">
+        <div id="isr-form">
+          <div class="isr-hdr">
+            <div class="isr-hdr-title">Calculadora ISR <span class="isr-badge">Art. 119–128 + 152 LISR</span></div>
+            <div class="isr-hdr-sub">Ingresa los datos de la operación. Los campos de deducciones son opcionales pero mejoran la precisión.</div>
+          </div>
+          <div class="isr-card">
+            <div class="isr-card-lbl">Tipo de operación</div>
+            <div class="isr-row1"><div class="isr-f"><label>¿Qué se está vendiendo?</label><select id="f-tipo" onchange="onTipoChange()"><option value="casa">Casa habitación o departamento</option><option value="terreno">Terreno</option><option value="comercial">Inmueble comercial</option></select></div></div>
+            <div id="iva-note" class="isr-alert-warn" style="display:none">⚠️ <strong>Nota IVA:</strong> La venta de inmuebles comerciales podría causar IVA (16%). Consulta con el notario (art. 9 LIVA).</div>
+          </div>
+          <div class="isr-card">
+            <div class="isr-card-lbl">Precio de venta</div>
+            <div class="isr-row1"><div class="isr-f"><label>Precio de venta (MXN)</label><input type="text" id="f-venta" placeholder="Ej. $3,500,000" oninput="propFmtMoney(this)" autocomplete="off"/></div></div>
+            <div class="isr-row2">
+              <div class="isr-f"><label>Mes de venta</label><select id="f-mes-v"><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11" selected>Noviembre</option><option value="12">Diciembre</option></select></div>
+              <div class="isr-f"><label>Año de venta</label><input type="number" id="f-anio-v" value="2026" min="1990" max="2030"/></div>
+            </div>
+          </div>
+          <div class="isr-card">
+            <div class="isr-card-lbl">Costo de adquisición del vendedor</div>
+            <div class="isr-row1"><div class="isr-f"><label>¿Cuánto pagó el vendedor cuando compró? (MXN)</label><input type="text" id="f-compra" placeholder="Ej. $1,800,000" oninput="propFmtMoney(this)" autocomplete="off"/><span class="isr-hint" id="compra-note"></span></div></div>
+            <div class="isr-row2">
+              <div class="isr-f"><label>Mes de adquisición</label><select id="f-mes-c"><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select></div>
+              <div class="isr-f"><label>Año de adquisición</label><input type="number" id="f-anio-c" placeholder="Ej. 2005" min="1950" max="2025" onchange="onAnioChange()"/></div>
+            </div>
+            <div id="alert-pre1981" class="isr-alert-warn" style="display:none">⚠️ <strong>Anterior a 1981:</strong> El notario usará avalúo referencial. Se aplica INPC desde enero de 1981.</div>
+            <div id="alert-pre1990" class="isr-alert-info" style="display:none"><strong>1981–1989:</strong> Se aplica reconversión monetaria (÷1,000 por eliminación de tres ceros en 1993).</div>
+          </div>
+          <div class="isr-card" id="sec-terreno-const">
+            <div class="isr-card-lbl">Terreno / Construcción <span class="isr-opt">art. 124 LISR</span></div>
+            <div class="isr-hdr-sub" style="margin-bottom:10px;font-size:11px;color:var(--mut)">La construcción se deprecia 3% anual (máx 18 años = 54%). Por defecto 20% terreno / 80% construcción.</div>
+            <div class="isr-row2">
+              <div class="isr-f"><label>% Terreno</label><input type="number" id="f-pct-terreno" value="20" min="0" max="100" oninput="onPctTerreno(this)"/></div>
+              <div class="isr-f"><label>% Construcción</label><input type="number" id="f-pct-const" value="80" min="0" max="100" oninput="onPctConst(this)"/></div>
+            </div>
+            <span class="isr-hint" id="deprec-note"></span>
+          </div>
+          <div class="isr-card">
+            <div class="isr-card-lbl">Deducciones <span class="isr-opt">opcionales</span></div>
+            <div class="isr-row1"><div class="isr-f"><label>Mejoras y ampliaciones (MXN)</label><input type="text" id="f-mej" placeholder="Ej. $200,000" oninput="propFmtMoney(this)" autocomplete="off"/></div></div>
+            <div class="isr-row1"><div class="isr-f"><label>Escrituración cuando adquirió (MXN)</label><input type="text" id="f-esc" placeholder="Ej. $45,000" oninput="propFmtMoney(this)" autocomplete="off"/></div></div>
+            <div class="isr-row1"><div class="isr-f"><label>Comisión del agente en esta venta (MXN)</label><input type="text" id="f-com" placeholder="Ej. $105,000" oninput="propFmtMoney(this)" autocomplete="off"/></div></div>
+          </div>
+          <div class="isr-card" id="sec-casa">
+            <div class="isr-card-lbl">Exención — Casa habitación</div>
+            <div class="isr-row2">
+              <div class="isr-f"><label>¿Es la casa habitación principal del vendedor?</label><select id="f-pri"><option value="si">Sí</option><option value="no">No</option><option value="nose">No estoy seguro</option></select></div>
+              <div class="isr-f"><label>¿Usó esta exención en los últimos 3 años?</label><select id="f-exp"><option value="no">No</option><option value="si">Sí</option><option value="nose">No lo sé</option></select></div>
+            </div>
+          </div>
+          <div id="inpc-status" class="isr-inpc-status" style="display:none">
+            <div id="inpc-loader" style="display:flex;align-items:center;gap:8px;color:var(--mut)"><div class="isr-spin"></div>Consultando INPC en Banxico…</div>
+            <div id="inpc-ok" style="display:none;color:var(--teal2)">✓ INPC en tiempo real desde Banxico</div>
+            <div id="inpc-err" style="display:none;color:var(--amber2)">⚠️ Sin conexión a Banxico — usando datos locales</div>
+          </div>
+          <button id="calc-btn" class="isr-calc-btn" onclick="calcISR()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Calcular ISR
+          </button>
+        </div>
+        <div id="res" style="display:none">
+          <div class="res-topbar">
+            <button class="res-back-btn" onclick="resetISR()">← Nuevo cálculo</button>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button class="res-back-btn" onclick="descargarPDF()" style="border-color:var(--violet);color:var(--violet2)">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                PDF
+              </button>
+              <span class="res-tipo-lbl" id="res-tipo"></span>
+            </div>
+          </div>
+          <div id="res-cards"></div>
+          <div id="res-inpc-row" class="res-inpc-row" style="display:none">
+            <div class="res-inpc-cell"><div class="res-inpc-lbl">INPC adquisición</div><div class="res-inpc-val" id="res-inpc-adq">—</div></div>
+            <div class="res-inpc-arr">→</div>
+            <div class="res-inpc-cell"><div class="res-inpc-lbl">INPC mes enajenación</div><div class="res-inpc-val" id="res-inpc-venta">—</div></div>
+            <div class="res-inpc-arr">=</div>
+            <div class="res-inpc-cell hl"><div class="res-inpc-lbl">Factor</div><div class="res-inpc-val" id="res-factor">—</div></div>
+          </div>
+          <div id="res-bkdn" class="res-bkdn"></div>
+          <div id="res-nota" class="res-nota" style="display:none"></div>
+          <div id="ai-box" class="ai-box" style="display:none">
+            <div class="ai-lbl">Análisis de Brokr</div>
+            <div id="ai-txt"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="panel-props" class="mod-panel" style="flex-direction:column">
+      <div class="props-toolbar">
+        <div class="props-search-wrap">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+          <input id="props-search" type="text" placeholder="Buscar por colonia, tipo, precio..." oninput="filterProps()"/>
+        </div>
+        <select id="props-filter-op" onchange="filterProps()">
+          <option value="">Todas operaciones</option>
+          <option value="venta">Venta</option>
+          <option value="renta">Renta</option>
+        </select>
+        <select id="props-filter-tipo" onchange="filterProps()">
+          <option value="">Todos los tipos</option>
+          <option value="casa">Casa</option>
+          <option value="departamento">Departamento</option>
+          <option value="terreno">Terreno</option>
+          <option value="local">Local comercial</option>
+          <option value="oficina">Oficina</option>
+          <option value="bodega">Bodega</option>
+        </select>
+        <select id="props-filter-est" onchange="filterProps()">
+          <option value="">Todos los estatus</option>
+          <option value="activa">Activas</option>
+          <option value="vendida">Vendidas</option>
+          <option value="rentada">Rentadas</option>
+          <option value="suspendida">Suspendidas</option>
+        </select>
+        <button class="props-new-btn" onclick="openPropForm(null)">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+          Nueva propiedad
         </button>
-        <div class="status-dot"></div>
-        <span id="hlbl"></span>
       </div>
-      <div class="hdr-right">
-        <button class="btn-secondary" onclick="logout()">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-          Salir
-        </button>
+      <div id="props-grid" class="props-grid">
+        <div class="props-empty">Cargando propiedades...</div>
       </div>
-    </header>
+    </div>
+    <div id="panel-ficha-manual" class="mod-panel"><iframe src="ficha-manual.html" class="iframe-panel"></iframe></div>
+    <div id="panel-ficha"        class="mod-panel"><iframe src="ficha.html"         class="iframe-panel"></iframe></div>
+    <div id="panel-contratos"    class="mod-panel"><iframe src="contratos.html"     class="iframe-panel"></iframe></div>
+    <div id="panel-avm"          class="mod-panel"><iframe src="avm.html"           class="iframe-panel"></iframe></div>
 
-    <!-- ═══════════════════════════════════════════
-         PANELES (área de contenido)
-         ═══════════════════════════════════════════
-         Cada módulo es un panel independiente.
-         Solo uno está visible a la vez.
-         ═══════════════════════════════════════════ -->
-    <div id="panels">
-
-      <!-- DASHBOARD (pantalla principal) -->
-      <div id="dashboard" class="panel active">
-        <div class="mod-card c-blue" onclick="setPanel('ficha-manual')" data-module="ficha-manual">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Fichas manuales</div>
-          <div class="mod-desc">Crea fichas profesionales con tus fotos y descripción por IA.</div>
-          <div class="mod-tag">Presentación</div>
-        </div>
-
-        <div class="mod-card c-blue" onclick="setPanel('ficha')" data-module="ficha">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Fichas EasyBroker</div>
-          <div class="mod-desc">Genera fichas PDF desde tu CRM con un clic.</div>
-          <div class="mod-tag">EasyBroker</div>
-        </div>
-
-        <div class="mod-card c-amber" onclick="setPanel('contratos')" data-module="contratos">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Contratos</div>
-          <div class="mod-desc">Arrendamiento y promesa de compraventa con cláusulas por IA.</div>
-          <div class="mod-tag">Legal</div>
-        </div>
-
-        <div class="mod-card c-rose" onclick="setPanel('avm')" data-module="avm">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Opinión de valor</div>
-          <div class="mod-desc">Estima el valor de mercado por zona y comparables.</div>
-          <div class="mod-tag">Valuación</div>
-        </div>
-
-        <div class="mod-card c-violet" onclick="setPanel('isr')" data-module="isr">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Calculadora ISR</div>
-          <div class="mod-desc">ISR por enajenación. Arts. 119–128 + 152 LISR.</div>
-          <div class="mod-tag">Fiscal</div>
-        </div>
-
-        <div class="mod-card c-emerald" onclick="setPanel('props')" data-module="props">
-          <div class="mod-head">
-            <div class="mod-icon"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <div class="mod-arr"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
-          </div>
-          <div class="mod-title">Mis inmuebles</div>
-          <div class="mod-desc">Gestiona tu portafolio con fotos y especificaciones.</div>
-          <div class="mod-tag">Portafolio</div>
-        </div>
-      </div>
-
-      <!-- ═══ PANELES DE MÓDULOS ═══
-           Cada uno es independiente.
-           Si un iframe falla, los demás siguen funcionando. -->
-
-      <div id="panel-ficha-manual" class="panel">
-        <iframe src="ficha-manual.html" class="panel-iframe"></iframe>
-      </div>
-
-      <div id="panel-ficha" class="panel">
-        <iframe src="ficha.html" class="panel-iframe"></iframe>
-      </div>
-
-      <div id="panel-contratos" class="panel">
-        <iframe src="contratos.html" class="panel-iframe"></iframe>
-      </div>
-
-      <div id="panel-avm" class="panel">
-        <iframe src="avm.html" class="panel-iframe"></iframe>
-      </div>
-
-      <div id="panel-isr" class="panel">
-        <iframe src="modulos/isr.html" class="panel-iframe"></iframe>
-      </div>
-
-      <div id="panel-props" class="panel">
-        <iframe src="modulos/propiedades.html" class="panel-iframe"></iframe>
-      </div>
-
-      <!-- ─── AGREGAR PANELES DE MÓDULOS NUEVOS AQUÍ ───
-      <div id="panel-usuario" class="panel">
-        <iframe src="modulos/usuario.html" class="panel-iframe"></iframe>
-      </div>
-      -->
-
-    </div><!-- /panels -->
-  </main>
+  </div><!-- /screens-container -->
 </div><!-- /app -->
 
-<!-- ═══ CHAT FLOTANTE ═══ -->
-<div id="chat-overlay" onclick="closeChatFloat()"></div>
+<!-- ══ CLOSE BAR ══ -->
+<div id="close-bar"><button onclick="showDashboard()" title="Cerrar">✕</button></div>
 
-<div id="chat-window">
-  <div class="cw-hdr">
-    <div class="status-dot"></div>
-    <div class="cw-title">Chat con IA</div>
-    <button class="cw-close" onclick="closeChatFloat()">✕</button>
-  </div>
-  <div id="chat">
-    <div id="welcome" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:8px;flex:1">
-      <div class="wlc-title">Chat con IA</div>
-      <div class="wlc-sub">Pregunta sobre ISR, contratos, valuación o pídeme navegar a cualquier módulo</div>
+<!-- ══ PROPERTY MODALS ══ -->
+<div id="prop-modal" class="prop-modal-overlay" onclick="closePropModal(event)">
+  <div class="prop-modal-box" onclick="event.stopPropagation()">
+    <div class="prop-modal-hdr">
+      <h3 id="prop-modal-title">Nueva propiedad</h3>
+      <button class="prop-modal-close" onclick="closePropModal()">✕</button>
     </div>
-  </div>
-  <div id="inp-area">
-    <div class="inp-wrap">
-      <textarea id="txtin" rows="1" placeholder="Escribe o habla…" onkeydown="onChatKey(event)" oninput="resizeChatInput(this)"></textarea>
-      <div class="inp-btns">
-        <button id="mic-btn" onclick="toggleVoice()" title="Hablar 🎙">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z"/></svg>
-        </button>
-        <button id="snd" onclick="sendChatMessage()">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-        </button>
-      </div>
+    <div class="prop-modal-body">
+      <form id="prop-form" onsubmit="saveProp(event)">
+        <div class="pf-section">Información básica</div>
+        <div class="pf-row"><div class="pf-field full"><label>Título *</label><input type="text" name="titulo" placeholder="Casa en venta en Las Palmas" required/></div></div>
+        <div class="pf-row cols-3">
+          <div class="pf-field"><label>Tipo *</label><select name="tipo" required><option value="">Seleccionar</option><option value="casa">Casa</option><option value="departamento">Departamento</option><option value="terreno">Terreno</option><option value="local">Local comercial</option><option value="oficina">Oficina</option><option value="bodega">Bodega</option></select></div>
+          <div class="pf-field"><label>Operación *</label><select name="operacion" required><option value="">Seleccionar</option><option value="venta">Venta</option><option value="renta">Renta</option></select></div>
+          <div class="pf-field"><label>Estatus</label><select name="estatus"><option value="activa">Activa</option><option value="vendida">Vendida</option><option value="rentada">Rentada</option><option value="suspendida">Suspendida</option></select></div>
+        </div>
+        <div class="pf-row cols-2">
+          <div class="pf-field"><label>Precio *</label><input type="text" name="precio" id="prop-precio" placeholder="$2,500,000" oninput="propFmtMoney(this)" autocomplete="off" required/></div>
+          <div class="pf-field"><label>Moneda</label><select name="moneda"><option value="MXN">MXN</option><option value="USD">USD</option></select></div>
+        </div>
+        <div class="pf-section">Ubicación</div>
+        <div class="pf-row"><div class="pf-field full"><label>Calle y número</label><input type="text" name="calle" placeholder="Av. Madero 123"/></div></div>
+        <div class="pf-row cols-3">
+          <div class="pf-field"><label>Colonia *</label><input type="text" name="colonia" placeholder="Las Palmas" required/></div>
+          <div class="pf-field"><label>Ciudad</label><input type="text" name="ciudad" value="Morelia"/></div>
+          <div class="pf-field"><label>C.P.</label><input type="text" name="cp" placeholder="58070"/></div>
+        </div>
+        <div class="pf-section">Características</div>
+        <div class="pf-row cols-3">
+          <div class="pf-field"><label>M² construcción</label><input type="number" name="m2_construccion" placeholder="180" min="0"/></div>
+          <div class="pf-field"><label>M² terreno</label><input type="number" name="m2_terreno" placeholder="220" min="0"/></div>
+          <div class="pf-field"><label>Recámaras</label><input type="number" name="recamaras" placeholder="3" min="0"/></div>
+        </div>
+        <div class="pf-row cols-3">
+          <div class="pf-field"><label>Baños</label><input type="number" name="banos" placeholder="2.5" min="0" step="0.5"/></div>
+          <div class="pf-field"><label>Estacionamientos</label><input type="number" name="estacionamientos" placeholder="2" min="0"/></div>
+          <div class="pf-field"><label>Año construcción</label><input type="number" name="anio_construccion" placeholder="2010" min="1900" max="2030"/></div>
+        </div>
+        <div class="pf-section">Descripción</div>
+        <div class="pf-row"><div class="pf-field full"><label>Descripción comercial</label><textarea name="descripcion" rows="3" placeholder="Describe la propiedad..."></textarea></div></div>
+        <div class="pf-section">Fotos</div>
+        <div class="pf-row"><div class="pf-field full">
+          <label>Subir fotos</label>
+          <input type="file" id="fotos-upload" accept="image/*" multiple style="padding:8px;border:2px dashed var(--bd2);border-radius:var(--r2);background:var(--gray-100);cursor:pointer;font-size:12px;width:100%"/>
+          <div id="fotos-preview"></div>
+          <div id="fotos-progress" style="font-size:11px;color:var(--mut);margin-top:4px"></div>
+          <input type="hidden" name="fotos_raw" id="fotos-raw-hidden"/>
+        </div></div>
+        <div class="pf-row"><div class="pf-field full"><label>Notas internas</label><textarea name="notas" rows="2" placeholder="Notas privadas sobre esta propiedad..."></textarea></div></div>
+        <input type="hidden" name="prop_id" value=""/>
+        <div class="pf-actions">
+          <button type="button" onclick="closePropModal()" class="pf-cancel-btn">Cancelar</button>
+          <button type="submit" class="pf-save-btn">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" d="M5 13l4 4L19 7"/></svg>
+            Guardar propiedad
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
 
-<button id="chat-fab" onclick="toggleChatFloat()" title="Chat con IA" aria-label="Abrir chat">
-  <span class="fab-open"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></span>
-  <span class="fab-close"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></span>
-</button>
+<div id="prop-detail-modal" class="prop-modal-overlay" onclick="closePropDetail(event)">
+  <div class="prop-modal-box prop-detail-box" onclick="event.stopPropagation()">
+    <div class="prop-modal-hdr">
+      <h3 id="detail-title">Detalle</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="pf-save-btn" style="padding:6px 14px;font-size:12px" id="detail-edit-btn">✏️ Editar</button>
+        <button class="prop-modal-close" onclick="closePropDetail()">✕</button>
+      </div>
+    </div>
+    <div class="prop-modal-body" id="detail-body"></div>
+  </div>
+</div>
 
-<!-- ═══ SCRIPTS ═══ -->
-<!-- Servicios compartidos (auth, supabase, formateo) -->
-<script src="js/services.js"></script>
+<!-- ══ SHAARK FAB ══ -->
+<div class="shaark-fab">
+  <div class="shaark-chat-window" id="shaark-window">
+    <div class="scw-header">
+      <div class="scw-avatar">🦈</div>
+      <div>
+        <div class="scw-name">Shaark</div>
+        <div class="scw-status">● En línea</div>
+      </div>
+      <button class="scw-close" onclick="closeShaarkWindow()">✕</button>
+    </div>
+    <div class="scw-messages" id="scw-msgs">
+      <div class="scw-bubble bot">¡Hola! 👋 Soy Shaark, tu asistente BROKR®. ¿En qué te ayudo?</div>
+    </div>
+    <div class="scw-chips" id="scw-chips">
+      <div class="scw-chip" onclick="shaarkChip('Generar un contrato')">📄 Contrato</div>
+      <div class="scw-chip" onclick="shaarkChip('Calcular ISR')">💰 ISR</div>
+      <div class="scw-chip" onclick="shaarkChip('Crear ficha técnica')">🏷️ Ficha</div>
+      <div class="scw-chip" onclick="shaarkChip('Ver mis propiedades')">🏠 Inmuebles</div>
+    </div>
+    <div class="scw-input-row">
+      <input class="scw-input" id="scw-input" type="text" placeholder="Pregunta algo..." onkeydown="if(event.key==='Enter') shaarkFabSend()"/>
+      <button class="scw-send" onclick="shaarkFabSend()">➤</button>
+    </div>
+  </div>
+  <div class="shaark-fab-btn" id="shaark-fab-btn" onclick="toggleShaarkWindow()">
+    🦈
+    <div class="fab-pulse"></div>
+  </div>
+</div>
 
-<!-- Chat flotante con IA -->
-<script src="js/chat.js"></script>
+<!-- ══ BOTTOM NAV ══ -->
+<div class="proto-nav">
+  <div class="proto-nav-item active" data-screen="home" onclick="protoGoTo('home')">
+    <div class="proto-nav-icon">⊞</div>
+    <div class="proto-nav-label">Inicio</div>
+  </div>
+  <div class="proto-nav-item" data-screen="modules" onclick="protoGoTo('modules')">
+    <div class="proto-nav-icon">⊟</div>
+    <div class="proto-nav-label">Módulos</div>
+  </div>
+  <div class="proto-nav-item" data-screen="profile" onclick="protoGoTo('profile')">
+    <div class="proto-nav-icon">👤</div>
+    <div class="proto-nav-label">Perfil</div>
+  </div>
+</div>
 
-<!-- Router de paneles (navegación) -->
-<script src="js/router.js"></script>
+<script>
+// ══ PROTO NAV (home / modules / profile) ══
+let protoScreen = 'home';
 
+function protoGoTo(name) {
+  // Hide all proto screens
+  document.querySelectorAll('.proto-screen').forEach(s => s.classList.remove('active-screen'));
+  document.querySelectorAll('.proto-nav-item').forEach(n => n.classList.remove('active'));
+  // Also hide mod panels
+  document.querySelectorAll('.mod-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('close-bar').style.display = 'none';
+
+  protoScreen = name;
+  document.getElementById('screen-' + name).classList.add('active-screen');
+  document.querySelector('.proto-nav-item[data-screen="' + name + '"]')?.classList.add('active');
+}
+
+// ══ SHAARK FAB ══
+let shaarkOpen = false;
+let shaarkMsgs = []; // keep conversation history
+
+function toggleShaarkWindow() {
+  shaarkOpen = !shaarkOpen;
+  const win = document.getElementById('shaark-window');
+  const btn = document.getElementById('shaark-fab-btn');
+  if (shaarkOpen) {
+    win.classList.add('open'); btn.classList.add('open');
+    setTimeout(() => {
+      const m = document.getElementById('scw-msgs');
+      if (m) m.scrollTop = m.scrollHeight;
+      document.getElementById('scw-input')?.focus();
+    }, 50);
+  } else {
+    win.classList.remove('open'); btn.classList.remove('open');
+  }
+}
+
+function closeShaarkWindow() {
+  shaarkOpen = false;
+  document.getElementById('shaark-window').classList.remove('open');
+  document.getElementById('shaark-fab-btn').classList.remove('open');
+}
+
+function shaarkFabSend() {
+  const input = document.getElementById('scw-input');
+  const text = (input.value || '').trim();
+  if (!text) return;
+  addScwBubble(text, 'user');
+  input.value = '';
+  document.getElementById('scw-chips').style.display = 'none';
+  shaarkMsgs.push({role:'user', content:text});
+  shaarkFabFetch(text);
+}
+
+function shaarkChip(text) {
+  addScwBubble(text, 'user');
+  document.getElementById('scw-chips').style.display = 'none';
+  shaarkMsgs.push({role:'user', content:text});
+  shaarkFabFetch(text);
+}
+
+function addScwBubble(text, type) {
+  const msgs = document.getElementById('scw-msgs');
+  const div = document.createElement('div');
+  div.className = 'scw-bubble ' + type;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function shaarkFabFetch(text) {
+  const typing = document.createElement('div');
+  typing.className = 'scw-bubble bot'; typing.textContent = '...'; typing.id = 'scw-typing';
+  const msgs = document.getElementById('scw-msgs');
+  msgs.appendChild(typing); msgs.scrollTop = msgs.scrollHeight;
+  try {
+    const r = await fetch('https://brokrebapi-production.up.railway.app/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'llama-3.3-70b-versatile', max_tokens:300, temperature:0.7,
+        messages:[
+          {role:'system', content:'Eres Shaark 🦈, asistente BROKR® para agentes inmobiliarios en Morelia México. Responde en español, muy breve (2-3 oraciones máximo). Si el usuario quiere ir a un módulo, incluye al FINAL: [ACCION]{"tipo":"navegar","modulo":"NOMBRE"}[/ACCION]. Módulos: isr | ficha-manual | ficha | contratos | avm | props.'},
+          ...shaarkMsgs
+        ]
+      })
+    });
+    const data = await r.json();
+    const reply = data.choices?.[0]?.message?.content || 'Sin respuesta.';
+    // Check for navigation action
+    const accionRe = /\[ACCION\](.*?)\[\/ACCION\]/gs;
+    let accionMatch;
+    while((accionMatch = accionRe.exec(reply)) !== null) {
+      try { const ac = JSON.parse(accionMatch[1].trim()); if(ac.tipo==='navegar'&&ac.modulo) setPanel(ac.modulo); } catch(e){}
+    }
+    const clean = reply.replace(/\[ACCION\].*?\[\/ACCION\]/gs,'').trim();
+    shaarkMsgs.push({role:'assistant', content:clean});
+    const t = document.getElementById('scw-typing');
+    if(t) t.textContent = clean;
+  } catch(e) {
+    const t = document.getElementById('scw-typing');
+    if(t) t.textContent = 'Error de conexión.';
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ══ MAIN APP LOGIC (original) ══
+// ══════════════════════════════════════════
+// PANEL NAVIGATION
+// ══════════════════════════════════════════
+const PANEL_MAP = {
+  'isr':          'panel-isr',
+  'props':        'panel-props',
+  'ficha-manual': 'panel-ficha-manual',
+  'ficha':        'panel-ficha',
+  'contratos':    'panel-contratos',
+  'avm':          'panel-avm',
+};
+
+function setPanel(name) {
+  document.getElementById('screen-home').classList.remove('active-screen');
+  document.querySelectorAll('.mod-panel').forEach(p => p.classList.remove('active'));
+  const pid = PANEL_MAP[name];
+  if(pid){
+    const el = document.getElementById(pid);
+    if(el) el.classList.add('active');
+  }
+  if(name === 'props') loadProps();
+  document.getElementById('close-bar').style.display = 'block';
+}
+
+function showDashboard() {
+  document.querySelectorAll('.mod-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('screen-home').classList.add('active-screen');
+  document.querySelectorAll('.proto-nav-item').forEach(t => t.classList.remove('active'));
+  document.querySelector('.proto-nav-item[data-screen="home"]')?.classList.add('active');
+  if(typeof closeShaarkWindow === 'function') closeShaarkWindow();
+}
+
+function goISR()  { setPanel('isr'); }
+function goProps(){ setPanel('props'); }
+
+// ══════════════════════════════════════════
+// PROFILE DRAWER
+// ══════════════════════════════════════════
+let drawerOpen = false;
+
+function openDrawer() {
+  drawerOpen = true;
+  document.getElementById('profile-drawer')?.classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('show');
+}
+function closeDrawer() {
+  drawerOpen = false;
+  document.getElementById('profile-drawer')?.classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('show');
+}
+function toggleDrawer() {
+  if(drawerOpen) closeDrawer(); else openDrawer();
+}
+
+// Desktop: hover on drawer edge opens it, moving away closes it
+const drawerEl = document.getElementById('profile-drawer');
+if(drawerEl) drawerEl.addEventListener('mouseleave', (e) => {
+  if(!drawerOpen) closeDrawer();
+});
+
+// ══════════════════════════════════════════
+// CHAT FLOAT
+// ══════════════════════════════════════════
+function toggleChatFloat(){ toggleShaarkWindow(); }
+function closeChatFloat(){ closeShaarkWindow(); }
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+const SB_URL_AUTH = 'https://urtgysmtnvoqaljuhntz.supabase.co';
+const SB_KEY_AUTH = 'sb_publishable_EVGLfmHVorBpQQWAh-vypA_hANNk_-i';
+
+let currentUser = null;
+let userProfile = null;
+
+async function authInit(){
+  const token = localStorage.getItem('sb_token') || sessionStorage.getItem('sb_token');
+  if(!token){ window.location.href = 'login.html'; return; }
+  const user = JSON.parse(localStorage.getItem('sb_user') || sessionStorage.getItem('sb_user') || '{}');
+  if(!user.id){ window.location.href = 'login.html'; return; }
+  try{
+    const r = await fetch(`${SB_URL_AUTH}/rest/v1/usuarios?id=eq.${user.id}&select=*`, {
+      headers:{ 'apikey': SB_KEY_AUTH, 'Authorization': `Bearer ${token}` }
+    });
+    const data = await r.json();
+    if(!data.length || data[0].activo === false){
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+      return;
+    }
+    userProfile = data[0];
+    currentUser = user;
+    applyUserPermissions();
+  } catch(e){
+    userProfile = { plan:'pro', modulos:['chat','isr','ficha-manual','ficha','contratos','avm'], activo:true };
+    applyUserPermissions();
+  }
+}
+
+function applyUserPermissions(){
+  if(!userProfile) return;
+  updateUserDisplay();
+
+  // Show admin items
+  if(userProfile.plan === 'admin'){
+    const lbl = document.getElementById('admin-lbl');
+    const btn = document.getElementById('admin-link-btn');
+    if(lbl) lbl.style.display = 'block';
+    if(btn) btn.style.display = 'flex';
+  }
+
+  // Hide tabs for modules user doesn't have
+  if(userProfile.plan !== 'admin' && userProfile.plan !== 'pro'){
+    const mods = userProfile.modulos || [];
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+      const mod = tab.getAttribute('data-mod');
+      if(mod && !mods.includes(mod)) tab.style.display = 'none';
+    });
+  }
+}
+
+function updateUserDisplay(){
+  if(!userProfile) return;
+  const n = document.getElementById('user-name-display');
+  const p = document.getElementById('user-plan-display');
+  const a = document.getElementById('user-avatar');
+  if(n) n.textContent = userProfile.nombre || currentUser?.email || '—';
+  if(p) p.textContent = {free:'Free',modulos:'Módulos',pro:'Pro',admin:'Admin'}[userProfile.plan] || userProfile.plan;
+  if(a) a.textContent = (userProfile.nombre || '?')[0].toUpperCase();
+   if(typeof updateGreeting === 'function') updateGreeting();
+}
+
+function logout(){
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = 'login.html';
+}
+
+// ══════════════════════════════════════════
+// INPC DATA (condensed — same as original)
+// ══════════════════════════════════════════
+const INPC_RAW = {
+  "1981-01":0.06562,"1981-02":0.06723,"1981-03":0.06866,"1981-04":0.07021,"1981-05":0.07128,"1981-06":0.07227,"1981-07":0.07354,"1981-08":0.07506,"1981-09":0.07646,"1981-10":0.07815,"1981-11":0.07966,"1981-12":0.0818,
+  "1982-01":0.08587,"1982-02":0.08924,"1982-03":0.0925,"1982-04":0.09751,"1982-05":0.10299,"1982-06":0.10795,"1982-07":0.11352,"1982-08":0.12626,"1982-09":0.133,"1982-10":0.13989,"1982-11":0.14696,"1982-12":0.16266,
+  "1983-01":0.18036,"1983-02":0.19003,"1983-03":0.19923,"1983-04":0.21185,"1983-05":0.22103,"1983-06":0.2294,"1983-07":0.24075,"1983-08":0.25009,"1983-09":0.25779,"1983-10":0.26634,"1983-11":0.28198,"1983-12":0.29405,
+  "1984-01":0.31273,"1984-02":0.32923,"1984-03":0.3433,"1984-04":0.35816,"1984-05":0.37003,"1984-06":0.38342,"1984-07":0.39599,"1984-08":0.40725,"1984-09":0.41938,"1984-10":0.43403,"1984-11":0.44893,"1984-12":0.468,
+  "1985-01":0.50271,"1985-02":0.5236,"1985-03":0.54389,"1985-04":0.56062,"1985-05":0.5739,"1985-06":0.58828,"1985-07":0.60876,"1985-08":0.63538,"1985-09":0.66075,"1985-10":0.68585,"1985-11":0.7175,"1985-12":0.76634,
+  "1986-01":0.83409,"1986-02":0.87117,"1986-03":0.91167,"1986-04":0.95926,"1986-05":1.01257,"1986-06":1.07757,"1986-07":1.13133,"1986-08":1.22153,"1986-09":1.29481,"1986-10":1.36882,"1986-11":1.4613,"1986-12":1.57673,
+  "1987-01":1.7044,"1987-02":1.82739,"1987-03":1.94815,"1987-04":2.11861,"1987-05":2.27833,"1987-06":2.44315,"1987-07":2.64102,"1987-08":2.85687,"1987-09":3.04508,"1987-10":3.29884,"1987-11":3.56051,"1987-12":4.08639,
+  "1988-01":4.71825,"1988-02":5.11178,"1988-03":5.37355,"1988-04":5.53894,"1988-05":5.64611,"1988-06":5.76129,"1988-07":5.85746,"1988-08":5.91134,"1988-09":5.94514,"1988-10":5.99049,"1988-11":6.07065,"1988-12":6.19732,
+  "1989-01":6.34902,"1989-02":6.43518,"1989-03":6.50494,"1989-04":6.60222,"1989-05":6.6931,"1989-06":6.77438,"1989-07":6.84215,"1989-08":6.90733,"1989-09":6.97339,"1989-10":7.07653,"1989-11":7.17586,"1989-12":7.41803,
+  "1990-01":7.77604,"1990-02":7.95212,"1990-03":8.09231,"1990-04":8.21547,"1990-05":8.35884,"1990-06":8.54294,"1990-07":8.69873,"1990-08":8.84695,"1990-09":8.97306,"1990-10":9.10206,"1990-11":9.34372,"1990-12":9.63821,
+  "1991-01":9.88388,"1991-02":10.05642,"1991-03":10.19984,"1991-04":10.30669,"1991-05":10.40744,"1991-06":10.51665,"1991-07":10.60958,"1991-08":10.68342,"1991-09":10.78985,"1991-10":10.91534,"1991-11":11.18637,"1991-12":11.44968,
+  "1992-01":11.65778,"1992-02":11.7959,"1992-03":11.91595,"1992-04":12.02217,"1992-05":12.10144,"1992-06":12.18335,"1992-07":12.26027,"1992-08":12.33559,"1992-09":12.4429,"1992-10":12.53249,"1992-11":12.63662,"1992-12":12.81655,
+  "1993-01":12.97732,"1993-02":13.08335,"1993-03":13.15959,"1993-04":13.23548,"1993-05":13.31114,"1993-06":13.3858,"1993-07":13.45012,"1993-08":13.52211,"1993-09":13.62226,"1993-10":13.67797,"1993-11":13.7383,"1993-12":13.84305,
+  "1994-01":13.95037,"1994-02":14.02212,"1994-03":14.09422,"1994-04":14.16325,"1994-05":14.23168,"1994-06":14.30289,"1994-07":14.36633,"1994-08":14.43329,"1994-09":14.53594,"1994-10":14.61225,"1994-11":14.69036,"1994-12":14.8192,
+  "1995-01":15.37699,"1995-02":16.02871,"1995-03":16.97362,"1995-04":18.32613,"1995-05":19.09209,"1995-06":19.69802,"1995-07":20.09959,"1995-08":20.43298,"1995-09":20.85564,"1995-10":21.28476,"1995-11":21.80961,"1995-12":22.52017,
+  "1996-01":23.32975,"1996-02":23.87426,"1996-03":24.39983,"1996-04":25.09345,"1996-05":25.55084,"1996-06":25.9669,"1996-07":26.33603,"1996-08":26.68607,"1996-09":27.11275,"1996-10":27.45117,"1996-11":27.86708,"1996-12":28.75934,
+  "1997-01":29.49889,"1997-02":29.9946,"1997-03":30.36789,"1997-04":30.69597,"1997-05":30.97612,"1997-06":31.25096,"1997-07":31.52321,"1997-08":31.8035,"1997-09":32.19961,"1997-10":32.45694,"1997-11":32.82004,"1997-12":33.27987,
+  "1998-01":34.00392,"1998-02":34.59924,"1998-03":35.00453,"1998-04":35.33204,"1998-05":35.61348,"1998-06":36.03442,"1998-07":36.38188,"1998-08":36.73163,"1998-09":37.32738,"1998-10":37.86227,"1998-11":38.53279,"1998-12":39.47297,
+  "1999-01":40.46977,"1999-02":41.01364,"1999-03":41.39468,"1999-04":41.77458,"1999-05":42.02588,"1999-06":42.30201,"1999-07":42.58158,"1999-08":42.82126,"1999-09":43.23502,"1999-10":43.50885,"1999-11":43.89578,"1999-12":44.33552,
+  "2000-01":44.93083,"2000-02":45.32938,"2000-03":45.58068,"2000-04":45.84002,"2000-05":46.01138,"2000-06":46.28392,"2000-07":46.46447,"2000-08":46.71979,"2000-09":47.06107,"2000-10":47.38514,"2000-11":47.79029,"2000-12":48.30767,
+  "2001-01":48.57548,"2001-02":48.54333,"2001-03":48.85089,"2001-04":49.09731,"2001-05":49.20997,"2001-06":49.32636,"2001-07":49.1982,"2001-08":49.48969,"2001-09":49.95038,"2001-10":50.17614,"2001-11":50.36515,"2001-12":50.4349,
+  "2002-01":50.90047,"2002-02":50.86775,"2002-03":51.12795,"2002-04":51.40723,"2002-05":51.51143,"2002-06":51.76259,"2002-07":51.91118,"2002-08":52.10856,"2002-09":52.42198,"2002-10":52.65304,"2002-11":53.07888,"2002-12":53.30993,
+  "2003-01":53.52544,"2003-02":53.67412,"2003-03":54.01293,"2003-04":54.10514,"2003-05":53.93056,"2003-06":53.97511,"2003-07":54.05334,"2003-08":54.21549,"2003-09":54.53824,"2003-10":54.73821,"2003-11":55.19254,"2003-12":55.42981,
+  "2004-01":55.77432,"2004-02":56.10794,"2004-03":56.29807,"2004-04":56.38303,"2004-05":56.2416,"2004-06":56.33174,"2004-07":56.47939,"2004-08":56.82804,"2004-09":57.29792,"2004-10":57.69475,"2004-11":58.1869,"2004-12":58.30709,
+  "2005-01":58.30916,"2005-02":58.50343,"2005-03":58.76712,"2005-04":58.97642,"2005-05":58.82825,"2005-06":58.77178,"2005-07":59.0018,"2005-08":59.07226,"2005-09":59.30901,"2005-10":59.45458,"2005-11":59.88249,"2005-12":60.25031,
+  "2006-01":60.60363,"2006-02":60.69636,"2006-03":60.77251,"2006-04":60.86162,"2006-05":60.59067,"2006-06":60.643,"2006-07":60.80929,"2006-08":61.11961,"2006-09":61.73661,"2006-10":62.00652,"2006-11":62.33186,"2006-12":62.69242,
+  "2007-01":63.01621,"2007-02":63.19235,"2007-03":63.32911,"2007-04":63.2913,"2007-05":62.98253,"2007-06":63.05817,"2007-07":63.326,"2007-08":63.584,"2007-09":64.0777,"2007-10":64.32741,"2007-11":64.78122,"2007-12":65.04906,
+  "2008-01":65.35056,"2008-02":65.54483,"2008-03":66.01989,"2008-04":66.17013,"2008-05":66.09864,"2008-06":66.37217,"2008-07":66.74206,"2008-08":67.12749,"2008-09":67.58493,"2008-10":68.04549,"2008-11":68.81894,"2008-12":69.29555,
+  "2009-01":69.45615,"2009-02":69.60949,"2009-03":70.00995,"2009-04":70.25499,"2009-05":70.05036,"2009-06":70.17935,"2009-07":70.37052,"2009-08":70.53888,"2009-09":70.89272,"2009-10":71.10719,"2009-11":71.47605,"2009-12":71.77186,
+  "2010-01":72.55205,"2010-02":72.97167,"2010-03":73.48973,"2010-04":73.25556,"2010-05":72.79398,"2010-06":72.77118,"2010-07":72.92919,"2010-08":73.13175,"2010-09":73.51511,"2010-10":73.96893,"2010-11":74.56158,"2010-12":74.93095,
+  "2011-01":75.29599,"2011-02":75.57846,"2011-03":75.72345,"2011-04":75.71744,"2011-05":75.15926,"2011-06":75.15551,"2011-07":75.51611,"2011-08":75.63556,"2011-09":75.82111,"2011-10":76.33271,"2011-11":77.15833,"2011-12":77.79239,
+  "2012-01":78.34305,"2012-02":78.50231,"2012-03":78.54739,"2012-04":78.30098,"2012-05":78.05382,"2012-06":78.41367,"2012-07":78.8539,"2012-08":79.09054,"2012-09":79.43912,"2012-10":79.84104,"2012-11":80.38344,"2012-12":80.56824,
+  "2013-01":80.89278,"2013-02":81.29094,"2013-03":81.88743,"2013-04":81.94152,"2013-05":81.66882,"2013-06":81.61924,"2013-07":81.59219,"2013-08":81.82433,"2013-09":82.13234,"2013-10":82.52299,"2013-11":83.29227,"2013-12":83.77006,
+  "2014-01":84.51905,"2014-02":84.73316,"2014-03":84.96529,"2014-04":84.80678,"2014-05":84.53558,"2014-06":84.68207,"2014-07":84.91496,"2014-08":85.21997,"2014-09":85.59634,"2014-10":86.06963,"2014-11":86.76378,"2014-12":87.18898,
+  "2015-01":87.1101,"2015-02":87.27538,"2015-03":87.63072,"2015-04":87.40384,"2015-05":86.96737,"2015-06":87.11311,"2015-07":87.24082,"2015-08":87.42488,"2015-09":87.75242,"2015-10":88.20392,"2015-11":88.68547,"2015-12":89.04682,
+  "2016-01":89.38638,"2016-02":89.77778,"2016-03":89.91,"2016-04":89.62528,"2016-05":89.22561,"2016-06":89.32403,"2016-07":89.55691,"2016-08":89.80933,"2016-09":90.35774,"2016-10":90.90615,"2016-11":91.61683,"2016-12":92.03903,
+  "2017-01":93.60388,"2017-02":94.14478,"2017-03":94.72249,"2017-04":94.83893,"2017-05":94.72549,"2017-06":94.96364,"2017-07":95.32274,"2017-08":95.79377,"2017-09":96.09352,"2017-10":96.69827,"2017-11":97.69517,"2017-12":98.27288,
+  "2018-01":98.795,"2018-02":99.17137,"2018-03":99.49216,"2018-04":99.15485,"2018-05":98.99408,"2018-06":99.37646,"2018-07":99.9091,"2018-08":100.492,"2018-09":100.917,"2018-10":101.44,"2018-11":102.303,"2018-12":103.02,
+  "2019-01":103.108,"2019-02":103.079,"2019-03":103.476,"2019-04":103.531,"2019-05":103.233,"2019-06":103.299,"2019-07":103.687,"2019-08":103.67,"2019-09":103.942,"2019-10":104.503,"2019-11":105.346,"2019-12":105.934,
+  "2020-01":106.447,"2020-02":106.889,"2020-03":106.838,"2020-04":105.755,"2020-05":106.162,"2020-06":106.743,"2020-07":107.444,"2020-08":107.867,"2020-09":108.114,"2020-10":108.774,"2020-11":108.856,"2020-12":109.271,
+  "2021-01":110.21,"2021-02":110.907,"2021-03":111.824,"2021-04":112.19,"2021-05":112.419,"2021-06":113.018,"2021-07":113.682,"2021-08":113.899,"2021-09":114.601,"2021-10":115.561,"2021-11":116.884,"2021-12":117.308,
+  "2022-01":118.002,"2022-02":118.981,"2022-03":120.159,"2022-04":120.809,"2022-05":121.022,"2022-06":122.044,"2022-07":122.948,"2022-08":123.803,"2022-09":124.571,"2022-10":125.276,"2022-11":125.997,"2022-12":126.478,
+  "2023-01":127.336,"2023-02":128.046,"2023-03":128.389,"2023-04":128.363,"2023-05":128.084,"2023-06":128.214,"2023-07":128.832,"2023-08":129.545,"2023-09":130.12,"2023-10":130.609,"2023-11":131.445,"2023-12":132.373,
+  "2024-01":133.555,"2024-02":133.681,"2024-03":134.065,"2024-04":134.336,"2024-05":134.087,"2024-06":134.594,"2024-07":136.003,"2024-08":136.013,"2024-09":136.08,"2024-10":136.828,"2024-11":137.424,"2024-12":137.949,
+  "2025-01":138.343,"2025-02":138.726,"2025-03":139.161,"2025-04":139.62,"2025-05":140.012,"2025-06":140.405,"2025-07":140.78,"2025-08":140.867,"2025-09":141.197,"2025-10":141.708,"2025-11":142.645,"2025-12":143.042,
+  "2026-01":143.588,"2026-02":144.307
+};
+
+const TABLA_ISR = [
+  {li:0,ls:8952.49,cf:0,tasa:0.0192},{li:8952.50,ls:75984.55,cf:171.88,tasa:0.0640},
+  {li:75984.56,ls:133536.07,cf:4461.94,tasa:0.1088},{li:133536.08,ls:155229.80,cf:10723.55,tasa:0.1600},
+  {li:155229.81,ls:185852.57,cf:14194.54,tasa:0.1792},{li:185852.58,ls:374837.88,cf:19682.13,tasa:0.2136},
+  {li:374837.89,ls:590795.99,cf:60049.40,tasa:0.2352},{li:590796.00,ls:1127926.84,cf:110842.74,tasa:0.3000},
+  {li:1127926.85,ls:1503902.46,cf:271981.99,tasa:0.3200},{li:1503902.47,ls:4511707.37,cf:392294.17,tasa:0.3400},
+  {li:4511707.38,ls:Infinity,cf:1417164.67,tasa:0.3500}
+];
+const TABLA_ISR_2024 = [
+  {li:0.01,ls:8952.49,cf:0,tasa:0.0192},{li:8952.50,ls:75984.55,cf:171.88,tasa:0.0640},
+  {li:75984.56,ls:133536.07,cf:3959.25,tasa:0.1088},{li:133536.08,ls:155229.80,cf:10220.86,tasa:0.1600},
+  {li:155229.81,ls:185852.57,cf:13526.70,tasa:0.1792},{li:185852.58,ls:374837.88,cf:18785.54,tasa:0.2136},
+  {li:374837.89,ls:590795.99,cf:57325.95,tasa:0.2352},{li:590796.00,ls:1127926.84,cf:108014.74,tasa:0.3000},
+  {li:1127926.85,ls:1503902.46,cf:269260.94,tasa:0.3200},{li:1503902.47,ls:4511707.37,cf:388012.14,tasa:0.3400},
+  {li:4511707.38,ls:Infinity,cf:1409354.09,tasa:0.3500}
+];
+
+let _isrData = null;
+
+function getINPC(mes, anio){
+  const key = anio+'-'+String(mes).padStart(2,'0');
+  if(INPC_RAW[key]) return INPC_RAW[key];
+  if(anio < 1981) return INPC_RAW["1981-01"];
+  return 144.307;
+}
+function getTablaISR(anioVenta){ return (anioVenta <= 2024) ? TABLA_ISR_2024 : TABLA_ISR; }
+function calcTablaProgresiva(tabla, base){
+  if(base <= 0) return 0;
+  for(const t of tabla){ if(base >= t.li && base <= t.ls) return t.cf + (base - t.li) * t.tasa; }
+  return 0;
+}
+function fmt(n){ return '$' + Math.round(n).toLocaleString('es-MX'); }
+function pct(n){ return n.toFixed(2) + '%'; }
+function g(id){ return document.getElementById(id); }
+
+function onTipoChange(){
+  const v = g('f-tipo').value;
+  g('sec-casa').style.display = v === 'casa' ? 'block' : 'none';
+  g('iva-note').style.display = v === 'comercial' ? 'block' : 'none';
+  const stc = g('sec-terreno-const');
+  if(stc) stc.style.display = v === 'terreno' ? 'none' : 'block';
+}
+function onAnioChange(){
+  const a  = parseInt(g('f-anio-c').value) || 0;
+  const av = parseInt(g('f-anio-v').value) || 2026;
+  g('alert-pre1981').style.display = (a > 0 && a < 1981) ? 'block' : 'none';
+  g('alert-pre1990').style.display = (a >= 1981 && a < 1990) ? 'block' : 'none';
+  if(g('compra-note')) g('compra-note').textContent = (a > 0 && a < 1981) ? 'Para antes de 1981 el notario puede requerir avalúo vigente' : '';
+  if(a > 0 && av > a){
+    const anos = av - a;
+    const depPct = Math.min(0.54, anos * 0.03);
+    if(g('deprec-note')) g('deprec-note').textContent = `Depreciación construcción: ${(depPct*100).toFixed(0)}% (${anos} años × 3%, máx 54%)`;
+  }
+}
+function onPctTerreno(el){ const v = Math.max(0, Math.min(100, parseInt(el.value)||0)); if(g('f-pct-const')) g('f-pct-const').value = 100 - v; }
+function onPctConst(el){ const v = Math.max(0, Math.min(100, parseInt(el.value)||0)); if(g('f-pct-terreno')) g('f-pct-terreno').value = 100 - v; }
+
+function calcISR(){
+  const tipo  = g('f-tipo').value;
+  const venta = getRawNum(g('f-venta').value);
+  const compra= getRawNum(g('f-compra').value);
+  const mesC  = parseInt(g('f-mes-c').value);
+  const anioC = parseInt(g('f-anio-c').value) || 2010;
+  const mesV  = parseInt(g('f-mes-v').value);
+  const anioV = parseInt(g('f-anio-v').value) || 2026;
+  const mej   = getRawNum(g('f-mej').value);
+  const com   = getRawNum(g('f-com').value);
+  const esc   = getRawNum(g('f-esc').value);
+
+  if(!venta || !compra){ alert('Ingresa el precio de venta y el costo de adquisición.'); return; }
+  if(!anioC || anioC < 1950 || anioC > 2030){ alert('Ingresa un año de adquisición válido.'); return; }
+
+  const mN = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const preAnio1981 = anioC < 1981;
+  const inpcAdq   = getINPC(mesC, anioC);
+  const inpcVenta = getINPC(mesV, anioV);
+  const factor    = inpcVenta / inpcAdq;
+
+  let costoAct = 0, debugTerreno = null;
+  if(tipo === 'terreno'){
+    costoAct = compra * factor;
+  } else {
+    const pctT  = (parseInt((g('f-pct-terreno')||{}).value) || 20) / 100;
+    const pctC  = 1 - pctT;
+    const valT  = compra * pctT;
+    const valC  = compra * pctC;
+    const anosConst = Math.max(0, anioV - anioC);
+    const depPct    = Math.min(0.54, anosConst * 0.03);
+    const valCDep   = valC * (1 - depPct);
+    costoAct = (valT * factor) + (valCDep * factor);
+    debugTerreno = { pctT, pctC, valT, valC, anosConst, depPct, valCDep, terrenoAct: valT*factor, constAct: valCDep*factor };
+  }
+
+  const mejA       = mej * factor;
+  const deducTotal = costoAct + mejA + com + esc;
+  const ganTotal   = venta - deducTotal;
+
+  let anios = anioV - anioC;
+  if(mesV > mesC) anios += 1;
+  if(anios < 1) anios = 1;
+
+  const LIMITE_EX = 700000 * 8.763028;
+  let baseGrav = 0, isrTotal = 0, exenta = false, exentaParcial = false;
+  let ganAcum = 0, isrAcum = 0, tasaEfec = 0, nota = '';
+
+  if(ganTotal <= 0){
+    nota = 'Pérdida fiscal — sin ISR. Deducible en declaración anual (art. 121 LISR).';
+  } else if(tipo === 'casa'){
+    const pri = g('f-pri').value, exp = g('f-exp').value;
+    if(pri === 'si' && exp === 'no'){
+      if(ganTotal <= LIMITE_EX){ exenta = true; nota = 'Exención total — ganancia dentro de 700,000 UDIS ('+fmt(LIMITE_EX)+'). Art. 93 fr. XIX LISR.'; }
+      else { exentaParcial = true; baseGrav = ganTotal - LIMITE_EX; nota = 'Exención parcial: primeros '+fmt(LIMITE_EX)+' libres. Solo grava el excedente.'; }
+    } else if(exp === 'si'){ baseGrav = ganTotal; nota = 'Exención no aplicable: ya utilizada en los últimos 3 años (art. 93 fr. XIX LISR).'; }
+    else { baseGrav = ganTotal; nota = exp === 'nose' ? 'No confirmada exención — verificar historial con el vendedor.' : 'No califica como casa habitación principal.'; }
+  } else { baseGrav = ganTotal; }
+
+  if(baseGrav > 0){
+    const tabla = getTablaISR(anioV);
+    ganAcum  = baseGrav / anios;
+    isrAcum  = calcTablaProgresiva(tabla, ganAcum);
+    tasaEfec = ganAcum > 0 ? isrAcum / ganAcum : 0;
+    isrTotal = isrAcum * anios;
+  }
+
+  const isrEstatal  = baseGrav > 0 ? baseGrav * 0.05 : 0;
+  const isrFederal  = Math.max(0, isrTotal - isrEstatal);
+  const tasaEfecPct = baseGrav > 0 ? (isrTotal / baseGrav) * 100 : 0;
+
+  _isrData = { tipo, venta, compra, costoAct, mej, mejA, com, esc, deducTotal, ganTotal, factor, inpcAdq, inpcVenta, mesC, anioC, mesV, anioV, mN, baseGrav, ganAcum, isrAcum, isrTotal, isrFederal, isrEstatal, anios, tasaEfec, tasaEfecPct, exenta, exentaParcial, nota, preAnio1981, LIMITE_EX, debugTerreno };
+  renderResult(_isrData);
+}
+
+function renderResult(d){
+  const inpcRow = g('res-inpc-row');
+  if(inpcRow){
+    if(d.ganTotal > 0){ inpcRow.style.display='flex'; if(g('res-inpc-adq')) g('res-inpc-adq').textContent=d.inpcAdq.toFixed(6); if(g('res-inpc-venta')) g('res-inpc-venta').textContent=d.inpcVenta.toFixed(6); if(g('res-factor')) g('res-factor').textContent=d.factor.toFixed(6); }
+    else inpcRow.style.display = 'none';
+  }
+  const tipos = {casa:'Casa habitación / Depto.',terreno:'Terreno',comercial:'Inmueble comercial'};
+  if(g('res-tipo')) g('res-tipo').textContent = tipos[d.tipo]||'';
+
+  let cards = '';
+  if(d.exenta){ cards=`<div class="rc gn"><div class="rc-l">ISR a pagar</div><div class="rc-v">$0</div><div class="rc-n">Exento — art. 93 fr. XIX</div></div><div class="rc"><div class="rc-l">Ganancia libre de impuesto</div><div class="rc-v">${fmt(d.ganTotal)}</div><div class="rc-n">No gravable</div></div>`; }
+  else if(d.ganTotal <= 0){ cards=`<div class="rc gn"><div class="rc-l">ISR a pagar</div><div class="rc-v">$0</div><div class="rc-n">Pérdida fiscal</div></div><div class="rc"><div class="rc-l">Pérdida deducible</div><div class="rc-v">${fmt(Math.abs(d.ganTotal))}</div><div class="rc-n">Declaración anual</div></div>`; }
+  else { cards=`<div class="rc dk"><div class="rc-l">ISR total a pagar</div><div class="rc-v">${fmt(d.isrTotal)}</div><div class="rc-n">Tasa efectiva: ${pct(d.tasaEfecPct)}</div></div><div class="rc"><div class="rc-l">ISR Entidad Federativa</div><div class="rc-v">${fmt(d.isrEstatal)}</div><div class="rc-n">5% ganancia — art. 127</div></div><div class="rc"><div class="rc-l">ISR Federación</div><div class="rc-v">${fmt(d.isrFederal)}</div><div class="rc-n">ISR total − retención estatal</div></div>`; }
+  if(g('res-cards')) g('res-cards').innerHTML = cards;
+
+  const adqLbl = d.preAnio1981 ? `INPC adq. base ene-1981: ${d.inpcAdq.toFixed(6)}` : `INPC ${d.mN[d.mesC]} ${d.anioC}: ${d.inpcAdq.toFixed(6)}`;
+  let bd = `<div class="br"><span class="bl">Precio de venta</span><span class="bv">${fmt(d.venta)}</span></div><div class="br sub"><span class="bl">${adqLbl}</span><span class="bv"></span></div><div class="br sub"><span class="bl">INPC ${d.mN[d.mesV]} ${d.anioV}: ${d.inpcVenta.toFixed(6)}</span><span class="bv"></span></div><div class="br sub"><span class="bl">Factor de actualización</span><span class="bv">${d.factor.toFixed(6)}</span></div>`;
+  if(d.debugTerreno){ const dt=d.debugTerreno; bd+=`<div class="br sub"><span class="bl">Terreno (${(dt.pctT*100).toFixed(0)}%): ${fmt(dt.valT)} × factor</span><span class="bv">${fmt(dt.terrenoAct)}</span></div><div class="br sub"><span class="bl">Construcción dep. × factor</span><span class="bv">${fmt(dt.constAct)}</span></div>`; }
+  bd += `<div class="br"><span class="bl">Costo adquisición actualizado</span><span class="bv">− ${fmt(d.costoAct)}</span></div>`;
+  if(d.mej) bd += `<div class="br"><span class="bl">Mejoras actualizadas</span><span class="bv">− ${fmt(d.mejA)}</span></div>`;
+  if(d.com) bd += `<div class="br"><span class="bl">Comisión del agente</span><span class="bv">− ${fmt(d.com)}</span></div>`;
+  if(d.esc) bd += `<div class="br"><span class="bl">Gastos de escrituración</span><span class="bv">− ${fmt(d.esc)}</span></div>`;
+  bd += `<div class="br tot"><span class="bl">${d.ganTotal >= 0 ? 'Ganancia total' : 'Pérdida fiscal'}</span><span class="bv">${fmt(Math.abs(d.ganTotal))}</span></div>`;
+  if(!d.exenta && d.ganTotal > 0 && d.exentaParcial){ bd+=`<div class="br sub"><span class="bl">Exención 700,000 UDIS</span><span class="bv">− ${fmt(d.LIMITE_EX)}</span></div><div class="br tot"><span class="bl">Base gravable</span><span class="bv">${fmt(d.baseGrav)}</span></div>`; }
+  if(!d.exenta && d.baseGrav > 0){ bd+=`<div class="br"><span class="bl">Años de tenencia (art. 120)</span><span class="bv">${d.anios}</span></div><div class="br sub"><span class="bl">Ganancia acumulable (÷ ${d.anios} años)</span><span class="bv">${fmt(d.ganAcum)}</span></div><div class="br sub"><span class="bl">ISR s/ ganancia acumulable (art. 152)</span><span class="bv">${fmt(d.isrAcum)}</span></div><div class="br sub"><span class="bl">Tasa efectiva</span><span class="bv">${(d.tasaEfec*100).toFixed(4)}%</span></div><div class="br tot"><span class="bl">ISR total</span><span class="bv">${fmt(d.isrTotal)}</span></div><div class="br"><span class="bl">ISR Entidad Federativa 5% (art. 127)</span><span class="bv">${fmt(d.isrEstatal)}</span></div><div class="br"><span class="bl">ISR Federación</span><span class="bv">${fmt(d.isrFederal)}</span></div>`; }
+  if(g('res-bkdn')) g('res-bkdn').innerHTML = bd;
+
+  const notaEl = g('res-nota');
+  if(notaEl){ notaEl.style.display='block'; notaEl.innerHTML=`<strong>⚠️ Cálculo orientativo</strong> — metodología notarial arts. 121, 124, 120, 152 y 127 LISR. El notario realiza el cálculo definitivo.`+(d.nota ? `<br><br><strong>Nota:</strong> ${d.nota}` : ''); }
+  if(g('res')) g('res').style.display = 'block';
+  setTimeout(() => { const panel = document.getElementById('panel-isr'); if(panel){ const scroll = panel.querySelector('.panel-scroll'); if(scroll && g('res')){ g('res').scrollIntoView({behavior:'smooth',block:'start'}); }}}, 80);
+  fetchAnalysis(d);
+}
+
+async function fetchAnalysis(d){
+  if(g('ai-box')) g('ai-box').style.display = 'block';
+  if(g('ai-txt')) g('ai-txt').innerHTML = '<span style="color:var(--mut);font-size:13px">Analizando operación…</span>';
+  const prompt = `Operación enajenación inmueble México: Tipo: ${d.tipo}, Venta: ${fmt(d.venta)}, Factor INPC: ${d.factor.toFixed(4)}, Ganancia: ${fmt(d.ganTotal)}, ISR total: ${fmt(d.isrTotal)}, Tasa: ${(d.tasaEfec*100).toFixed(2)}%. En 3 oraciones: valida resultado, consideración fiscal principal, recomendación práctica.`;
+  try{
+    const r = await fetch('https://brokrebapi-production.up.railway.app/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:280,temperature:0.5,messages:[{role:'system',content:'Tu nombre es Shaark. NO te llamas Brokr. Brokr es tu casa y creador. Experto en fiscalidad y derecho inmobiliarios mexicanos. Responde en español, breve y práctico.'},{role:'user',content:prompt}]})});
+    const data = await r.json();
+    if(g('ai-txt')) g('ai-txt').innerHTML = fmtMsg(data.choices?.[0]?.message?.content||'');
+  } catch(e){ if(g('ai-box')) g('ai-box').style.display = 'none'; }
+}
+
+function resetISR(){
+  if(g('res')) g('res').style.display = 'none';
+  _isrData = null;
+  ['f-venta','f-compra','f-anio-c','f-mej','f-com','f-esc'].forEach(id => { const el=g(id); if(el) el.value=''; });
+  if(g('f-anio-v')) g('f-anio-v').value = '2026';
+  if(g('f-pct-terreno')) g('f-pct-terreno').value = '20';
+  if(g('f-pct-const'))   g('f-pct-const').value   = '80';
+  if(g('deprec-note'))   g('deprec-note').textContent = '';
+  if(g('compra-note'))   g('compra-note').textContent = '';
+  if(g('alert-pre1981')) g('alert-pre1981').style.display = 'none';
+  if(g('alert-pre1990')) g('alert-pre1990').style.display = 'none';
+  const panel = document.getElementById('panel-isr');
+  if(panel){ const s = panel.querySelector('.panel-scroll'); if(s) s.scrollTop = 0; }
+}
+
+function descargarPDF(){
+  const d = _isrData;
+  if(!d){ alert('Primero realiza un cálculo.'); return; }
+  const bkdn  = (g('res-bkdn')||{}).innerHTML || '';
+  const nota  = (g('res-nota')||{}).innerHTML || '';
+  const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><title>ISR BROKR</title><style>body{font-family:'Poppins',sans-serif;font-size:12px;color:#1a1a1a;margin:0;padding:28px 32px;max-width:700px}h1{font-size:18px;font-weight:800;margin:0 0 2px}.sub{color:#555;font-size:11px;margin-bottom:16px}h2{font-size:13px;font-weight:700;margin:18px 0 6px;color:#333;border-bottom:1px solid #ddd;padding-bottom:3px}.br{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px}.br.tot{font-weight:700;font-size:13px;border-bottom:2px solid #ccc}.br.sub{padding-left:18px;color:#555}.bl{color:#444}.bv{font-weight:600}.nota{background:#fff8e6;border-left:3px solid #f59e0b;padding:10px 14px;font-size:11px;margin-top:14px;border-radius:0 6px 6px 0;line-height:1.6}.footer{font-size:10px;color:#999;margin-top:24px;padding-top:8px;border-top:1px solid #eee;text-align:center}</style></head><body><h1>Cálculo ISR por Enajenación</h1><div class="sub">Generado: ${new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})} · ${meses[d.mesV]} ${d.anioV}</div><h2>Desglose</h2>${bkdn}${nota?`<div class="nota">${nota}</div>`:''}<div class="footer">Generado por Brokr · Uso interno del agente inmobiliario · No sustituye al cálculo notarial definitivo</div></body></html>`;
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `ISR_Brokr_${meses[d.mesV]}${d.anioV}.html`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ══════════════════════════════════════════
+// CHAT
+// ══════════════════════════════════════════
+let msgs = [], busy = false;
+const BAV = `<img src="icon-192.png" style="width:22px;height:22px;border-radius:50%;object-fit:cover;background:#fff;">`;
+function onKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }
+function resize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
+
+async function send(){
+  if(busy) return;
+  const inp = g('txtin');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  const wlc = g('welcome'); if(wlc) wlc.remove();
+  addMsg('u', txt); msgs.push({role:'user',content:txt});
+  inp.value=''; inp.style.height='auto';
+  const tid = addTyping(); busy = true; g('snd').disabled = true;
+  try{
+    const r = await fetch('https://brokrebapi-production.up.railway.app/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'llama-3.3-70b-versatile',max_tokens:1500,temperature:0.7,messages:[{role:'system',content:`Eres Brokr, el asistente inmobiliario con IA más avanzado de México. Cuando el usuario pida navegar a un módulo, incluye al FINAL de tu respuesta: [ACCION]{"tipo":"navegar","modulo":"NOMBRE"}[/ACCION]. Módulos: isr | ficha-manual | ficha | contratos | avm | props. Conoces: LISR, Código Civil, contratos, SAT, INPC, mercado de Morelia. Español, preciso y profesional.`},...msgs]})});
+    rmTyping(tid);
+    if(!r.ok){ const e=await r.json(); addErr(e.error?.message||'Error'); msgs.pop(); return; }
+    const data = await r.json();
+    let reply = data.choices?.[0]?.message?.content||'Sin respuesta.';
+    const accionRe = /\[ACCION\](.*?)\[\/ACCION\]/gs;
+    let clean = reply, accionMatch;
+    while((accionMatch = accionRe.exec(reply)) !== null){
+      try{ const ac = JSON.parse(accionMatch[1].trim()); if(ac.tipo === 'navegar' && ac.modulo) setPanel(ac.modulo); } catch(e){}
+    }
+    clean = reply.replace(/\[ACCION\].*?\[\/ACCION\]/gs,'').trim();
+    msgs.push({role:'assistant',content:clean}); addMsg('a',clean);
+    if(window._lastInputWasVoice){ speak(clean); window._lastInputWasVoice = false; }
+  } catch(e){ rmTyping(tid); addErr('No se pudo conectar.'); msgs.pop(); }
+  finally{ busy=false; g('snd').disabled=false; inp.focus(); }
+}
+
+function addMsg(role,content){
+  const area=g('chat'); const d=document.createElement('div'); d.className='msg '+role;
+  d.innerHTML=`<div class="av">${role==='a'?BAV:'Ag'}</div><div class="bbl">${fmtMsg(content)}</div>`;
+  area.appendChild(d); area.scrollTop=area.scrollHeight;
+}
+function addTyping(){ const area=g('chat'); const id='t'+Date.now(); const d=document.createElement('div'); d.className='msg a'; d.id=id; d.innerHTML=`<div class="av">${BAV}</div><div class="bbl"><div class="dots"><span></span><span></span><span></span></div></div>`; area.appendChild(d); area.scrollTop=area.scrollHeight; return id; }
+function rmTyping(id){ const e=g(id); if(e) e.remove(); }
+function addErr(msg){ const area=g('chat'); const d=document.createElement('div'); d.className='msg a'; d.innerHTML=`<div class="av" style="background:#c00;color:#fff">!</div><div class="bbl" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)">Error: ${msg}</div>`; area.appendChild(d); area.scrollTop=area.scrollHeight; }
+function fmtMsg(t){ return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^#{1,3} (.+)$/gm,'<strong style="font-size:14.5px;display:block;margin-top:5px">$1</strong>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/^(\d+)\. (.+)$/gm,'<li>$2</li>').replace(/(<li>[\s\S]*?<\/li>\n?)+/g,m=>`<ul style="padding-left:16px;margin:5px 0">${m}</ul>`).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br/>').replace(/^(.+)$/,'<p>$1</p>'); }
+
+// ══════════════════════════════════════════
+// VOICE
+// ══════════════════════════════════════════
+let recognition = null, isListening = false;
+
+function toggleVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){ alert('Tu navegador no soporta reconocimiento de voz. Usa Chrome.'); return; }
+  if(isListening){ stopVoice(); return; }
+  startVoice();
+}
+function startVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR(); recognition.lang='es-MX'; recognition.continuous=false; recognition.interimResults=true;
+  const btn=g('mic-btn'), inp=g('txtin');
+  isListening=true; btn.classList.add('listening');
+  if(inp){ inp.placeholder='🎙 Escuchando…'; inp.value=''; }
+  recognition.onresult = (e) => { let final='',interim=''; for(let i=0;i<e.results.length;i++){ if(e.results[i].isFinal) final+=e.results[i][0].transcript; else interim+=e.results[i][0].transcript; } if(inp){ inp.value=(final||interim).trim(); if(typeof resize==='function') resize(inp); } };
+  recognition.onerror = () => stopVoice();
+  recognition.onend = () => { const txt=inp?inp.value.trim():''; if(isListening&&txt){ window._lastInputWasVoice=true; stopVoice(); setTimeout(()=>send(),150); } else stopVoice(); };
+  try{ recognition.start(); } catch(e){ stopVoice(); }
+}
+function stopVoice(){ isListening=false; const btn=g('mic-btn'); if(btn) btn.classList.remove('listening'); if(recognition){ try{ recognition.abort(); }catch(e){} recognition=null; } const inp=g('txtin'); if(inp&&inp.placeholder==='🎙 Escuchando…') inp.placeholder='Pregunta o pide algo…'; }
+function speak(text){ if(!('speechSynthesis' in window)) return; const clean=text.replace(/\[ACCION\].*?\[\/ACCION\]/gs,'').replace(/[*_#`]/g,'').replace(/\n+/g,' ').trim().slice(0,500); if(!clean) return; window.speechSynthesis.cancel(); const doSpeak=()=>{ const utt=new SpeechSynthesisUtterance(clean); utt.lang='es-MX'; utt.rate=1.05; const voices=window.speechSynthesis.getVoices(); const v=voices.find(v=>v.lang==='es-MX')||voices.find(v=>v.lang==='es-ES')||null; if(v) utt.voice=v; window.speechSynthesis.speak(utt); }; if(window.speechSynthesis.getVoices().length) doSpeak(); else { window.speechSynthesis.onvoiceschanged=()=>{ doSpeak(); window.speechSynthesis.onvoiceschanged=null; }; } }
+
+// ══════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════
+const SB_URL = 'https://urtgysmtnvoqaljuhntz.supabase.co';
+const SB_KEY = 'sb_publishable_EVGLfmHVorBpQQWAh-vypA_hANNk_-i';
+
+async function sbFetch(path, method='GET', body=null){
+  const opts = { method, headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=representation' } };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(SB_URL+'/rest/v1/'+path, opts);
+  if(!r.ok){ const e=await r.text(); throw new Error(e); }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : [];
+}
+
+// ══════════════════════════════════════════
+// PROPERTIES
+// ══════════════════════════════════════════
+let allProps = [];
+let uploadedFotoUrls = [];
+
+async function loadProps(){
+  const grid = document.getElementById('props-grid');
+  grid.innerHTML = '<div class="props-empty">Cargando propiedades...</div>';
+  try{
+    allProps = await sbFetch('propiedades?order=created_at.desc&limit=200');
+    renderProps(allProps);
+  } catch(e){
+    grid.innerHTML = '<div class="props-empty">Error: '+e.message+'</div>';
+  }
+}
+
+function fmt_precio(p, moneda='MXN'){
+  if(!p) return '—';
+  return (moneda==='USD'?'USD ':'$') + Number(p).toLocaleString('es-MX',{minimumFractionDigits:0});
+}
+
+function renderProps(props){
+  const grid = document.getElementById('props-grid');
+  if(!props.length){
+    grid.innerHTML = '<div class="props-empty"><svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity:.3;margin-bottom:12px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><p>Sin propiedades. Agrega la primera.</p></div>';
+    return;
+  }
+  grid.innerHTML = props.map(p => {
+    const foto = p.fotos && p.fotos.length
+      ? `<div class="prop-card-img"><img src="${p.fotos[0]}" onerror="this.parentElement.innerHTML='<div style=width:100%;height:140px;background:var(--sf2);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px>Sin foto</div>'"/></div>`
+      : '<div class="prop-card-img" style="background:var(--sf2);height:140px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px">Sin foto</div>';
+    const specs = [];
+    if(p.recamaras) specs.push(`<span>🛏 ${p.recamaras}</span>`);
+    if(p.banos) specs.push(`<span>🚿 ${p.banos}</span>`);
+    if(p.m2_construccion) specs.push(`<span>📐 ${p.m2_construccion}m²</span>`);
+    return `<div class="prop-card" onclick="openPropDetail('${p.id}')">
+      ${foto}
+      <div class="prop-card-body">
+        <div class="prop-card-badges"><span class="badge badge-${p.operacion}">${p.operacion}</span><span class="badge badge-${p.estatus}">${p.estatus}</span></div>
+        <div class="prop-card-title">${p.titulo}</div>
+        <div class="prop-card-loc">📍 ${p.colonia}${p.ciudad?', '+p.ciudad:''}</div>
+        <div class="prop-card-price">${fmt_precio(p.precio, p.moneda)}</div>
+        <div class="prop-card-specs">${specs.join('')}</div>
+      </div>
+      <div class="prop-card-actions">
+        <button class="prop-act-btn" onclick="event.stopPropagation();openPropForm('${p.id}')">✏️ Editar</button>
+        <button class="prop-act-btn prop-act-del" onclick="event.stopPropagation();deleteProp('${p.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterProps(){
+  const q    = document.getElementById('props-search').value.toLowerCase();
+  const op   = document.getElementById('props-filter-op').value;
+  const tipo = document.getElementById('props-filter-tipo').value;
+  const est  = document.getElementById('props-filter-est').value;
+  renderProps(allProps.filter(p => {
+    const matchQ  = !q || (p.titulo+p.colonia+p.ciudad+p.descripcion+'').toLowerCase().includes(q);
+    return matchQ && (!op||p.operacion===op) && (!tipo||p.tipo===tipo) && (!est||p.estatus===est);
+  }));
+}
+
+function openPropForm(id){
+  uploadedFotoUrls = [];
+  const modal = document.getElementById('prop-modal');
+  const form  = document.getElementById('prop-form');
+  const title = document.getElementById('prop-modal-title');
+  form.reset();
+  document.getElementById('fotos-preview').innerHTML = '';
+  document.getElementById('fotos-progress').textContent = '';
+  document.getElementById('fotos-raw-hidden').value = '';
+
+  if(id){
+    const p = allProps.find(x => x.id === id);
+    if(!p) return;
+    title.textContent = 'Editar propiedad';
+    Object.keys(p).forEach(k => {
+      const el = form.elements[k];
+      if(!el || p[k]===null || p[k]===undefined) return;
+      if(k==='precio') el.value = p[k] ? '$'+Number(p[k]).toLocaleString('es-MX',{minimumFractionDigits:0}) : '';
+      else el.value = p[k];
+    });
+    form.elements['fotos_raw'].value = (p.fotos||[]).join(', ');
+    form.elements['prop_id'].value = id;
+    if(p.fotos && p.fotos.length){
+      uploadedFotoUrls = [...p.fotos];
+      const preview = document.getElementById('fotos-preview');
+      p.fotos.forEach((url, idx) => {
+        const div = document.createElement('div'); div.className='foto-preview-item';
+        div.innerHTML = `<img src="${url}"/><button type="button" onclick="removeFoto(${idx},this.parentElement)" title="Eliminar">✕</button>`;
+        preview.appendChild(div);
+      });
+      document.getElementById('fotos-progress').textContent = `${p.fotos.length} foto(s) existente(s)`;
+    }
+  } else {
+    title.textContent = 'Nueva propiedad';
+    form.elements['prop_id'].value = '';
+  }
+  modal.style.display = 'flex';
+  initFotoUpload();
+}
+
+function closePropModal(e){
+  if(e && e.target !== document.getElementById('prop-modal')) return;
+  document.getElementById('prop-modal').style.display = 'none';
+}
+
+async function saveProp(e){
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+  const data = {};
+  fd.forEach((v,k) => { if(v !== '') data[k] = v; });
+  const fotosRaw = (data.fotos_raw||'').split(',').map(s=>s.trim()).filter(Boolean);
+  delete data.fotos_raw;
+  data.fotos = fotosRaw.length ? fotosRaw : uploadedFotoUrls;
+  if(data['precio']) data['precio'] = getRawNum(String(data['precio']));
+  ['m2_construccion','m2_terreno','recamaras','banos','estacionamientos','anio_construccion'].forEach(k => { if(data[k]) data[k] = Number(data[k]); });
+  data.updated_at = new Date().toISOString();
+  const id = data.prop_id; delete data.prop_id;
+  try{
+    const btn = form.querySelector('.pf-save-btn');
+    btn.innerHTML='Guardando...'; btn.disabled=true;
+    if(id) await sbFetch('propiedades?id=eq.'+id, 'PATCH', data);
+    else   await sbFetch('propiedades', 'POST', data);
+    document.getElementById('prop-modal').style.display = 'none';
+    await loadProps();
+  } catch(err){ alert('Error guardando: '+err.message); }
+  finally{ const btn=form.querySelector('.pf-save-btn'); if(btn){ btn.innerHTML='<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path stroke-linecap="round" d="M5 13l4 4L19 7"/></svg> Guardar propiedad'; btn.disabled=false; } }
+}
+
+async function deleteProp(id){
+  if(!confirm('¿Eliminar esta propiedad?')) return;
+  try{ await sbFetch(`propiedades?id=eq.${id}`, 'DELETE'); await loadProps(); } catch(e){ alert('Error: '+e.message); }
+}
+
+function initFotoUpload(){
+  const input = document.getElementById('fotos-upload');
+  if(!input) return;
+  const clone = input.cloneNode(true);
+  input.parentNode.replaceChild(clone, input);
+  clone.addEventListener('change', handleFotoFiles);
+}
+
+async function handleFotoFiles(e){
+  const files = Array.from(e.target.files);
+  if(!files.length) return;
+  const progress = document.getElementById('fotos-progress');
+  const preview  = document.getElementById('fotos-preview');
+  for(let i=0; i<files.length; i++){
+    const file = files[i];
+    progress.textContent = `Subiendo ${i+1} de ${files.length}: ${file.name}`;
+    try{
+      const ext  = file.name.split('.').pop().toLowerCase();
+      const name = `prop_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const r = await fetch(`https://urtgysmtnvoqaljuhntz.supabase.co/storage/v1/object/fotos-propiedades/${name}`,{ method:'POST', headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, 'Content-Type':file.type, 'x-upsert':'true' }, body:file });
+      if(!r.ok) throw new Error(await r.text());
+      const url = `https://urtgysmtnvoqaljuhntz.supabase.co/storage/v1/object/public/fotos-propiedades/${name}`;
+      uploadedFotoUrls.push(url);
+      const div = document.createElement('div'); div.className='foto-preview-item';
+      const idx = uploadedFotoUrls.length-1;
+      div.innerHTML = `<img src="${url}"/><button type="button" onclick="removeFoto(${idx},this.parentElement)" title="Eliminar">✕</button>`;
+      preview.appendChild(div);
+    } catch(err){ progress.textContent=`Error: ${err.message}`; return; }
+  }
+  progress.textContent = `✓ ${uploadedFotoUrls.length} foto(s) subida(s)`;
+  document.getElementById('fotos-raw-hidden').value = uploadedFotoUrls.join(',');
+}
+
+function removeFoto(idx, el){ uploadedFotoUrls.splice(idx,1); el.remove(); document.getElementById('fotos-raw-hidden').value = uploadedFotoUrls.join(','); }
+
+function openPropDetail(id){
+  const p = allProps.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('detail-title').textContent = p.titulo;
+  document.getElementById('detail-edit-btn').onclick = () => { closePropDetail(); openPropForm(id); };
+  const fotos = p.fotos && p.fotos.length ? p.fotos : [];
+  const gallery = fotos.length
+    ? `<div class="detail-gallery">${fotos.map(f=>`<img src="${f}" onclick="window.open('${f}','_blank')"/>`).join('')}</div>`
+    : '<div style="height:140px;background:var(--sf);border-radius:var(--r2);display:flex;align-items:center;justify-content:center;color:var(--mut);margin-bottom:14px">Sin fotos</div>';
+  const specs = [{l:'Tipo',v:p.tipo},{l:'Operación',v:p.operacion},{l:'Estatus',v:p.estatus},{l:'M² Construc.',v:p.m2_construccion?p.m2_construccion+'m²':'—'},{l:'M² Terreno',v:p.m2_terreno?p.m2_terreno+'m²':'—'},{l:'Recámaras',v:p.recamaras||'—'},{l:'Baños',v:p.banos||'—'},{l:'Estac.',v:p.estacionamientos||'—'}];
+  document.getElementById('detail-body').innerHTML = `${gallery}<div class="detail-price-hero">${fmt_precio(p.precio,p.moneda)}</div><div class="detail-loc">📍 ${[p.calle,p.colonia,p.ciudad].filter(Boolean).join(', ')}</div>${p.descripcion?`<div class="detail-desc">${p.descripcion}</div>`:''}<div class="detail-info-grid">${specs.map(s=>`<div class="detail-info-item"><label>${s.l}</label><span>${s.v}</span></div>`).join('')}</div>${p.notas?`<div style="background:rgba(245,158,11,.08);border-radius:var(--r2);padding:12px;font-size:12px;color:var(--amber2)"><strong>📝 Notas internas:</strong> ${p.notas}</div>`:''}`;
+  document.getElementById('prop-detail-modal').style.display = 'flex';
+}
+
+function closePropDetail(e){
+  if(e && e.target !== document.getElementById('prop-detail-modal')) return;
+  document.getElementById('prop-detail-modal').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// MONEY FORMAT
+// ══════════════════════════════════════════
+function getRawNum(val){ return parseFloat((val||'').replace(/[$,]/g,'').trim()) || 0; }
+function propFmtMoney(input){ const raw=getRawNum(input.value); if(!raw){ input.value=''; return; } input.value='$'+raw.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+// ══════════════════════════════════════════
+// PWA
+// ══════════════════════════════════════════
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js?v=202603222305').then(reg=>{ window._swReg=reg; }).catch(()=>{});
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('screen-home').classList.add('active-screen');
+  document.getElementById('close-bar').style.display = 'none';
+  authInit().then(() => { if(typeof updateGreeting === 'function') updateGreeting(); });
+});
+</script>
 </body>
 </html>

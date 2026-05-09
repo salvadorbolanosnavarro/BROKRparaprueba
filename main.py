@@ -1,12 +1,36 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import httpx
 import os
 import time
 import re
-from typing import Optional
+import asyncio
+import base64
+import uuid as _uuid
+import io
+import json
+import concurrent.futures
+from typing import Optional, List
 from datetime import datetime
+from pathlib import Path
+
+# Pillow
+try:
+    from PIL import Image, ImageEnhance
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
+# OpenCV
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+
+_thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 app = FastAPI()
 app.add_middleware(
@@ -16,30 +40,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-EB_API_KEY   = os.environ.get("EB_API_KEY", "")
-GROQ_API_KEY      = os.environ.get("GROQ_API_KEY", "")
+from routers.campanas import router as campanas_router
+app.include_router(campanas_router)
+
+CONFIG_FILE = Path(__file__).parent / "config.json"
+
+def load_config() -> dict:
+    try:
+        if CONFIG_FILE.exists():
+            return json.loads(CONFIG_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+def save_config(data: dict):
+    try:
+        CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    except Exception:
+        pass
+
+_config = load_config()
+
+EB_API_KEY       = os.environ.get("EB_API_KEY", "") or _config.get("eb_api_key", "")
+GROQ_API_KEY     = os.environ.get("GROQ_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-EB_BASE           = "https://api.easybroker.com/v1"
-GROQ_BASE         = "https://api.groq.com/openai/v1"
-ANTHROPIC_BASE    = "https://api.anthropic.com/v1"
+GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY", "")
+EB_BASE          = "https://api.easybroker.com/v1"
+GROQ_BASE        = "https://api.groq.com/openai/v1"
+ANTHROPIC_BASE   = "https://api.anthropic.com/v1"
+GEMINI_BASE      = "https://generativelanguage.googleapis.com/v1beta"
+APIFY_API_KEY = os.environ.get("APIFY_API_KEY", "")
+GOOGLE_PLACES_KEY = os.environ.get("GOOGLE_PLACES_KEY", "")
+SUPABASE_URL      = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY      = os.environ.get("SUPABASE_ANON_KEY", "")
+
+# In-memory PDF store: token → (bytes, filename). Max 50 entradas.
+_pdf_store: dict = {}
 
 # ── CACHE EN MEMORIA (TTL 6h) ──
 _cache: dict = {}
-CACHE_TTL = 21600  # 6 hours
+CACHE_TTL = 21600  # 6 hours default
+_cache_ttl: dict = {}  # per-key TTL overrides
 
 def cache_get(key):
     if key in _cache:
         data, ts = _cache[key]
-        if time.time() - ts < CACHE_TTL:
+        ttl = _cache_ttl.get(key, CACHE_TTL)
+        if time.time() - ts < ttl:
             return data
         del _cache[key]
+        _cache_ttl.pop(key, None)
     return None
 
-def cache_set(key, data):
+def cache_set(key, data, ttl=None):
     _cache[key] = (data, time.time())
+    if ttl is not None:
+        _cache_ttl[key] = ttl
 
-def eb_headers():
-    return {"X-Authorization": EB_API_KEY, "accept": "application/json"}
+def eb_headers(key: str = None):
+    k = key or EB_API_KEY
+    return {"X-Authorization": k, "accept": "application/json"}
 
 # ────────────────────────────────────────────
 # EASYBROKER — BASE ENDPOINTS
@@ -47,6 +107,28 @@ def eb_headers():
 @app.get("/")
 def root():
     return {"status": "Brokr API activa", "version": "4.0"}
+
+# ────────────────────────────────────────────
+# CONFIG — EB API KEY PERSISTENCE
+# ────────────────────────────────────────────
+class EbKeyRequest(BaseModel):
+    key: str
+
+@app.post("/config/eb-key")
+async def set_eb_key(req: EbKeyRequest):
+    global EB_API_KEY, _config
+    EB_API_KEY = req.key.strip()
+    _config["eb_api_key"] = EB_API_KEY
+    save_config(_config)
+    return {"ok": True, "saved": True}
+
+@app.get("/config/eb-key")
+async def get_eb_key():
+    if EB_API_KEY and len(EB_API_KEY) > 4:
+        masked = "*" * (len(EB_API_KEY) - 4) + EB_API_KEY[-4:]
+    else:
+        masked = ""
+    return {"configured": bool(EB_API_KEY), "masked": masked}
 
 # ────────────────────────────────────────────
 # GROQ CHAT PROXY
@@ -80,19 +162,239 @@ async def chat_proxy(req: ChatRequest):
                 detail=f"Error Groq: {r.text}")
         return r.json()
 
+
 # ────────────────────────────────────────────
-# ANTHROPIC CLAUDE — DESCRIPCIÓN DE FICHA
+# CLAUDE CHAT PROXY — SHAARK IA SUPERINTELIGENTE
 # ────────────────────────────────────────────
-class ClaudeRequest(BaseModel):
-    prompt: str
-    max_tokens: int = 500
+SHAARK_SYSTEM_PROMPT = """Eres Shaark, el asistente de inteligencia artificial de BROKR®, la plataforma inmobiliaria más avanzada de México, especializada en Morelia y Michoacán.
+
+Eres un experto inmobiliario que conoce a fondo:
+- LISR (Ley del Impuesto Sobre la Renta) — artículos de enajenación de inmuebles
+- ISR por enajenación: exención de 700,000 UDIS, deducciones permitidas, INPC
+- Código Civil Federal y de Michoacán — contratos de compraventa y arrendamiento
+- SAT: obligaciones fiscales del vendedor y comprador
+- Mercado inmobiliario de Morelia: colonias, plusvalía, precios por zona
+- Avalúos y valuación de inmuebles (método de mercado, hedónico, físico)
+
+PERSONALIDAD:
+- Hablas en español mexicano, natural y cercano
+- Eres directo, preciso y profesional — nunca redundante
+- Cuando el usuario habla por voz, respondes con oraciones cortas y claras
+- Nunca inventes cifras ni datos legales
+
+REGLA DE ORO:
+Cuando el usuario pide realizar una tarea, recopila los datos OBLIGATORIOS de UNO EN UNO, de forma conversacional. NUNCA ejecutes la acción con datos incompletos. Cuando tengas todo, di un resumen breve y ejecuta la acción. Los datos opcionales que el usuario no conozca se omiten (usa 0 o "").
+
+══════════════════════════════════════════════════
+ACCIÓN 1: CALCULAR ISR POR ENAJENACIÓN
+══════════════════════════════════════════════════
+Datos OBLIGATORIOS (pregunta uno por uno):
+1. Tipo de inmueble: casa habitación, terreno, o comercial
+2. Precio de venta (MXN)
+3. Mes y año de la venta
+4. Precio de compra original (MXN)
+5. Mes y año de la compra
+6. Si es casa: ¿usó la exención en los últimos 3 años? (sí / no / no sabe)
+7. ¿Mejoras o ampliaciones? (monto o "no")
+8. ¿Escrituración al comprar? (monto o "no sé")
+9. ¿Comisión del agente en esta venta? (monto o "no aplica")
+
+La pregunta 6 SOLO aplica a casa/departamento. Para terrenos y comerciales usa "no" automáticamente.
+
+Cuando tengas todo:
+[ACCION]{"tipo":"llenar_isr","precio_venta":NUMERO,"precio_compra":NUMERO,"anio_venta":NUMERO,"mes_venta":NUMERO,"anio_compra":NUMERO,"mes_compra":NUMERO,"inmueble":"casa","exencion":"no","mejoras":NUMERO,"escrituracion":NUMERO,"comision":NUMERO}[/ACCION]
+
+Valores "inmueble": "casa" | "terreno" | "comercial"
+Valores "exencion": "no" | "si" | "nose"
+mes_venta y mes_compra son números 1-12. Datos opcionales desconocidos = 0.
+
+══════════════════════════════════════════════════
+ACCIÓN 2: OPINIÓN DE VALOR CON BÚSQUEDA WEB
+══════════════════════════════════════════════════
+Cuando el usuario pide valuar, tasar, dar un precio o dar opinión de valor de un inmueble.
+
+Datos OBLIGATORIOS (pregunta uno por uno si faltan):
+1. Colonia o fraccionamiento
+2. Tipo de inmueble: casa, departamento, terreno, local, oficina, bodega
+3. Operación: venta o renta
+4. Superficie: m² de construcción (casas/deptos/locales) o m² de terreno (terrenos)
+
+Datos OPCIONALES que si el usuario menciona debes capturar: recámaras, baños, estacionamientos, condición del terreno (plano/pendiente), ciudad (default Morelia).
+
+Cuando tengas los datos OBLIGATORIOS, emite la acción opinion_valor_web:
+[ACCION]{"tipo":"opinion_valor_web","colonia":"Vistas Altozano","tipo_inmueble":"terreno","operacion":"venta","m2_terreno":183,"m2_construccion":0,"recamaras":0,"banos":0,"ciudad":"Morelia","condicion_terreno":"plano"}[/ACCION]
+
+Valores "tipo_inmueble": "casa" | "departamento" | "terreno" | "local" | "oficina" | "bodega"
+Valores "operacion": "venta" | "renta"
+Valores "condicion_terreno": "plano" | "pendiente" | "irregular" | "" (solo para terrenos)
+Para casas/deptos: usa m2_construccion. Para terrenos: usa m2_terreno. Ciudad default "Morelia".
+Omite campos opcionales que no tengas (usa 0 o "").
+
+══════════════════════════════════════════════════
+ACCIÓN 3: GENERAR CONTRATO DE ARRENDAMIENTO
+══════════════════════════════════════════════════
+Cuando el usuario pide contrato de renta/arrendamiento.
+Datos OBLIGATORIOS:
+1. Calle del inmueble arrendado
+2. Número exterior
+3. Colonia del inmueble
+4. C.P. (código postal)
+5. Municipio y estado (ej: "Morelia, Michoacán")
+6. Nombre completo del arrendador (dueño) — EN MAYÚSCULAS
+7. Nombre completo del arrendatario (inquilino) — EN MAYÚSCULAS
+8. Renta mensual (MXN)
+9. Depósito en garantía (si no sabe, usa el mismo valor que la renta)
+10. Fecha de inicio (día/mes/año)
+
+Cuando tengas todo:
+[ACCION]{"tipo":"llenar_contrato","subtipo":"arrendamiento","calle_inmueble":"AV. CAMELINAS","num_ext":"123","num_int":"","colonia":"CHAPULTEPEC","cp":"58260","municipio_estado":"MORELIA, MICHOACÁN","arrendador":"SALVADOR BOLAÑOS NAVARRO","arrendatario":"GABRIELA NAVARRO PÉREZ","renta":8500,"deposito":8500,"dia_pago":5,"fecha_inicio":"2026-05-01"}[/ACCION]
+
+dia_pago: día límite del mes para pagar (default 5). fecha_inicio en formato YYYY-MM-DD.
+
+══════════════════════════════════════════════════
+ACCIÓN 4: GENERAR PROMESA DE COMPRAVENTA
+══════════════════════════════════════════════════
+Cuando el usuario pide contrato de compraventa o promesa de venta.
+Datos OBLIGATORIOS:
+1. Dirección del inmueble (calle y número)
+2. Colonia
+3. C.P.
+4. Nombre del vendedor (promitente vendedor)
+5. Nombre del comprador (promitente comprador)
+6. Precio total de venta
+7. Monto de arras/enganche
+8. Fecha límite para escriturar
+
+Cuando tengas todo:
+[ACCION]{"tipo":"llenar_contrato","subtipo":"promesa","dir":"Cipres 167","colonia":"Melchor Ocampo","cp":"58160","vendedor":"JUAN PÉREZ GARCÍA","comprador":"MARÍA LÓPEZ HERNÁNDEZ","precio":2500000,"arras":250000,"fecha_limite":"2026-06-30"}[/ACCION]
+
+fecha_limite en formato YYYY-MM-DD.
+
+══════════════════════════════════════════════════
+ACCIÓN 5: FICHA TÉCNICA DESDE EASYBROKER
+══════════════════════════════════════════════════
+Cuando el usuario quiere hacer una ficha de una propiedad de EasyBroker y da el ID (formato EB-XXXX).
+[ACCION]{"tipo":"crear_ficha","id_easybroker":"EB-KH4322"}[/ACCION]
+
+Si el usuario no da el ID, navega al módulo y pídele el ID:
+[ACCION]{"tipo":"navegar","modulo":"ficha"}[/ACCION]
+
+══════════════════════════════════════════════════
+ACCIÓN 6: FICHA TÉCNICA MANUAL
+══════════════════════════════════════════════════
+Cuando el usuario quiere hacer una ficha técnica sin ID de EasyBroker y da los datos del inmueble.
+Datos mínimos: tipo, operación, precio, colonia.
+[ACCION]{"tipo":"crear_ficha_manual","tipo_inmueble":"casa","operacion":"venta","precio":3500000,"colonia":"Chapultepec","ciudad":"Morelia","calle":"Av. Madero 123","recamaras":3,"banos":2,"m2_construccion":180,"m2_terreno":220,"estacionamientos":2,"descripcion":""}[/ACCION]
+
+Valores "operacion": "venta" | "renta". Omite campos que no tengas.
+
+══════════════════════════════════════════════════
+ACCIÓN 7: BUSCAR PROPIEDAD EN MIS INMUEBLES
+══════════════════════════════════════════════════
+Cuando el usuario pide ver, buscar o encontrar una propiedad en su cartera.
+[ACCION]{"tipo":"buscar_propiedad","query":"Chapultepec"}[/ACCION]
+
+══════════════════════════════════════════════════
+ACCIÓN 8: CREAR CAMPAÑA DE META ADS
+══════════════════════════════════════════════════
+Cuando el usuario quiere crear un anuncio, campaña, publicidad, pauta en Facebook o Instagram.
+
+Datos OBLIGATORIOS (pregunta uno por uno si faltan):
+1. ¿Para qué propiedad es el anuncio? (nombre o descripción breve)
+2. ¿Cuánto presupuesto diario en pesos? (mínimo $50)
+3. ¿Qué objetivo tiene el anuncio? Ofrece opciones en lenguaje simple:
+   a) "Conseguir contactos interesados (leads)"
+   b) "Llevar visitas a mi página web"
+   c) "Dar a conocer la propiedad (reconocimiento)"
+
+Datos que inferes AUTOMÁTICAMENTE (no preguntes):
+- Ciudad: del perfil del usuario (o pregunta solo si no la tienes)
+- Rango de edad: default 25-55
+
+Cuando tengas todo, muestra un resumen en lenguaje simple y emite la acción de confirmación:
+[ACCION]{"tipo":"confirmar_campana","nombre":"NOMBRE","objetivo":"OUTCOME_LEADS","presupuesto_diario_mxn":150,"ciudad":"Morelia","edad_min":25,"edad_max":55,"url_destino":"","texto_anuncio":""}[/ACCION]
+
+Valores "objetivo": "OUTCOME_LEADS" | "OUTCOME_TRAFFIC" | "OUTCOME_AWARENESS"
+La acción "confirmar_campana" muestra un card de confirmación — NO ejecuta la campaña directamente.
+NUNCA ejecutes sin confirmación explícita del usuario.
+
+Ejemplo:
+Usuario: "quiero hacer un anuncio para mi casa en Chapultepec, presupuesto 200 pesos diarios, para conseguir leads"
+Shaark: "Perfecto. Resumen: Casa en Chapultepec, $200/día, objetivo: conseguir contactos, Morelia, edad 25-55. ¿Lo creamos?"
+[ACCION]{"tipo":"confirmar_campana","nombre":"Campaña - Casa Chapultepec","objetivo":"OUTCOME_LEADS","presupuesto_diario_mxn":200,"ciudad":"Morelia","edad_min":25,"edad_max":55,"url_destino":"","texto_anuncio":""}[/ACCION]
+
+══════════════════════════════════════════════════
+NAVEGACIÓN DIRECTA
+══════════════════════════════════════════════════
+Para ir a un módulo sin datos adicionales:
+[ACCION]{"tipo":"navegar","modulo":"isr"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"ficha-manual"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"ficha"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"contratos"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"avm"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"props"}[/ACCION]
+[ACCION]{"tipo":"navegar","modulo":"campanas"}[/ACCION]
+
+══════════════════════════════════════════════════
+EJEMPLOS DE CONVERSACIÓN CORRECTA
+══════════════════════════════════════════════════
+
+EJEMPLO ISR:
+Usuario: "calcula el ISR de una casa que vendí en 3.2 millones en marzo 2026, la compré en un millón en enero 2015, comisión 96 mil"
+Shaark: "Perfecto. Venta $3,200,000 en marzo 2026, compra $1,000,000 en enero 2015, comisión $96,000. ¿Usaste la exención de casa habitación en los últimos 3 años?"
+Usuario: "no"
+Shaark: "Listo. Calculando ISR ahora."
+[ACCION]{"tipo":"llenar_isr","precio_venta":3200000,"precio_compra":1000000,"anio_venta":2026,"mes_venta":3,"anio_compra":2015,"mes_compra":1,"inmueble":"casa","exencion":"no","mejoras":0,"escrituracion":0,"comision":96000}[/ACCION]
+
+EJEMPLO CONTRATO DE RENTA:
+Usuario: "dame un contrato de renta para Av. Camelinas 123, Chapultepec, Morelia, el dueño es Salvador Bolaños y el inquilino es Gabriela Navarro, renta de 8,500 al mes"
+Shaark: "¿Cuál es el código postal de Chapultepec?"
+Usuario: "58260"
+Shaark: "¿Desde qué fecha empieza el contrato?"
+Usuario: "1 de mayo de 2026"
+Shaark: "Perfecto. Generando contrato de arrendamiento."
+[ACCION]{"tipo":"llenar_contrato","subtipo":"arrendamiento","calle_inmueble":"AV. CAMELINAS","num_ext":"123","num_int":"","colonia":"CHAPULTEPEC","cp":"58260","municipio_estado":"MORELIA, MICHOACÁN","arrendador":"SALVADOR BOLAÑOS NAVARRO","arrendatario":"GABRIELA NAVARRO PÉREZ","renta":8500,"deposito":8500,"dia_pago":5,"fecha_inicio":"2026-05-01"}[/ACCION]
+
+EJEMPLO AVM:
+Usuario: "valúa un terreno plano de 183m² en Vistas Altozano"
+Shaark: "¿Es para venta o renta?"
+Usuario: "venta"
+Shaark: "Perfecto. Buscando comparables en el mercado ahora mismo."
+[ACCION]{"tipo":"opinion_valor_web","colonia":"Vistas Altozano","tipo_inmueble":"terreno","operacion":"venta","m2_terreno":183,"m2_construccion":0,"recamaras":0,"banos":0,"ciudad":"Morelia","condicion_terreno":"plano"}[/ACCION]
+
+EJEMPLO AVM CASA:
+Usuario: "dame el valor de una casa de 180m² construcción, 3 recámaras, 2 baños en Chapultepec"
+Shaark: "¿Operación venta o renta?"
+Usuario: "venta"
+Shaark: "Listo. Analizando el mercado de Chapultepec."
+[ACCION]{"tipo":"opinion_valor_web","colonia":"Chapultepec","tipo_inmueble":"casa","operacion":"venta","m2_construccion":180,"m2_terreno":0,"recamaras":3,"banos":2,"ciudad":"Morelia","condicion_terreno":""}[/ACCION]
+
+EJEMPLO FICHA EB:
+Usuario: "haz la ficha de la propiedad EB-KH4322"
+Shaark: "Generando ficha técnica de EB-KH4322."
+[ACCION]{"tipo":"crear_ficha","id_easybroker":"EB-KH4322"}[/ACCION]
+
+Responde siempre en español. Nunca uses markdown en respuestas conversacionales (sin **, sin #, sin listas con guiones)."""
+
+class ClaudeChatRequest(BaseModel):
+    messages: list
+    max_tokens: int = 1200
     temperature: float = 0.7
+    context: str = ""  # Módulo/pantalla activa — se inyecta al system prompt
 
 @app.post("/chat-claude")
-async def claude_proxy(req: ClaudeRequest):
+async def chat_claude_proxy(req: ClaudeChatRequest):
     if not ANTHROPIC_API_KEY:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY no configurada en el servidor")
-    async with httpx.AsyncClient(timeout=30) as client:
+
+    # Construir system prompt con contexto dinámico del módulo activo
+    system_content = SHAARK_SYSTEM_PROMPT
+    if req.context:
+        system_content += f"\n\n═══════════════════════════════════════\nCONTEXTO ACTUAL DEL USUARIO\n═══════════════════════════════════════\nEl usuario está en: {req.context}\nAdapta tu respuesta y acciones a este módulo cuando sea relevante."
+
+    user_messages = [m for m in req.messages if m.get("role") != "system"]
+
+    async with httpx.AsyncClient(timeout=60) as client:
         r = await client.post(
             f"{ANTHROPIC_BASE}/messages",
             headers={
@@ -101,26 +403,63 @@ async def claude_proxy(req: ClaudeRequest):
                 "Content-Type": "application/json",
             },
             json={
-                "model": "claude-haiku-4-5",
+                "model": "claude-sonnet-4-6",
                 "max_tokens": req.max_tokens,
-                "messages": [{"role": "user", "content": req.prompt}],
+                "system": system_content,
+                "messages": user_messages,
             }
         )
         if r.status_code != 200:
             raise HTTPException(status_code=r.status_code,
-                detail=f"Error Anthropic: {r.text}")
+                detail=f"Error Claude: {r.text}")
+
         data = r.json()
-        # Return in same format as Groq for easy frontend compatibility
-        text = data.get("content", [{}])[0].get("text", "")
-        return {"choices": [{"message": {"content": text}}]}
+        reply_text = data.get("content", [{}])[0].get("text", "Sin respuesta.")
+        return {
+            "choices": [
+                {"message": {"role": "assistant", "content": reply_text}}
+            ]
+        }
+
+
+@app.post("/isr-pdf")
+async def generar_isr_pdf(p: dict):
+    """Recibe HTML del cálculo ISR y lo convierte a PDF con Playwright."""
+    from playwright.async_api import async_playwright  # noqa: re-import ok here (lazy)
+    html = p.get("html", "")
+    if not html:
+        raise HTTPException(status_code=400, detail="HTML vacío")
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        page = await browser.new_page()
+        await page.set_content(html, wait_until="domcontentloaded")
+        await page.wait_for_timeout(300)
+        pdf_bytes = await page.pdf(
+            format="A4",
+            print_background=True,
+            margin={"top": "20mm", "right": "20mm", "bottom": "20mm", "left": "20mm"}
+        )
+        await browser.close()
+    token = str(_uuid.uuid4()).replace("-","")[:16]
+    filename = p.get("filename", "ISR_Brokr.pdf")
+    _pdf_store[token] = (pdf_bytes, filename)
+    if len(_pdf_store) > 50:
+        oldest = list(_pdf_store.keys())[0]
+        del _pdf_store[oldest]
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"token": token, "filename": filename})
+
 
 @app.get("/propiedad/{property_id}")
-async def get_propiedad(property_id: str):
-    if not EB_API_KEY:
-        raise HTTPException(status_code=500, detail="EB_API_KEY no configurada")
+async def get_propiedad(property_id: str, request: Request):
+    user_key = request.headers.get("X-EB-Key", "").strip()
+    if not user_key:
+        raise HTTPException(status_code=400, detail="Configura tu API key de EasyBroker en Perfil → API EasyBroker para usar este módulo.")
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(f"{EB_BASE}/properties/{property_id}",
-                             headers=eb_headers())
+                             headers=eb_headers(user_key))
+        if r.status_code == 401:
+            raise HTTPException(status_code=401, detail="API key de EasyBroker inválida. Verifica tu configuración en Perfil → API EasyBroker.")
         if r.status_code == 404:
             raise HTTPException(status_code=404, detail="Propiedad no encontrada")
         if r.status_code != 200:
@@ -466,97 +805,6 @@ def ajuste_hedonico(comp: dict, sujeto: dict) -> dict:
 # ────────────────────────────────────────────
 
 
-@app.get("/debug-propiedad")
-async def debug_propiedad(id: str = "EB-KH4322"):
-    """Show all fields of a property — focused on date fields."""
-    if not EB_API_KEY:
-        raise HTTPException(status_code=500, detail="EB_API_KEY no configurada")
-    async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(f"{EB_BASE}/properties/{id}", headers=eb_headers())
-        if r.status_code != 200:
-            raise HTTPException(status_code=r.status_code, detail="Error")
-        data = r.json()
-        # Show ALL fields — especially any date-related ones
-        date_fields = {k: v for k, v in data.items() if any(
-            word in k.lower() for word in
-            ["date","fecha","created","updated","listed","published","at","time","year"]
-        )}
-        all_keys = list(data.keys())
-        return {
-            "all_field_names": all_keys,
-            "date_related_fields": date_fields,
-            "full_data": data
-        }
-
-@app.get("/debug-colonia")
-async def debug_colonia(colonia: str = "Chapultepec Sur", ciudad: str = "Morelia"):
-    """Show exactly what EB has for a colonia — raw data for debugging."""
-    if not EB_API_KEY:
-        raise HTTPException(status_code=500, detail="EB_API_KEY no configurada")
-
-    def norm(s):
-        for a,b in [("á","a"),("é","e"),("í","i"),("ó","o"),("ú","u"),("ñ","n")]:
-            s = s.lower().replace(a,b)
-        return re.sub(r"[^a-z0-9 ]", "", s).strip()
-
-    col_norm = norm(colonia)
-    ciudad_norm = norm(ciudad)
-    all_results = []
-    page = 1
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        while page <= 10:
-            r = await client.get(
-                f"{EB_BASE}/properties",
-                headers=eb_headers(),
-                params={"limit": 50, "page": page}
-            )
-            if r.status_code != 200:
-                break
-            data = r.json()
-            props = data.get("content", [])
-            if not props:
-                break
-            for p in props:
-                loc = p.get("location","")
-                loc_norm = norm(loc)
-                status = p.get("status","")
-                updated = p.get("updated_at","")[:10] if p.get("updated_at") else ""
-                year = int(updated[:4]) if updated else 0
-                col_match = col_norm in loc_norm
-                city_match = ciudad_norm in loc_norm
-                all_results.append({
-                    "public_id": p.get("public_id"),
-                    "location": loc,
-                    "status": status,
-                    "updated": updated,
-                    "year": year,
-                    "col_match": col_match,
-                    "city_match": city_match,
-                    "tipo": p.get("property_type"),
-                })
-            if not data.get("pagination",{}).get("next_page"):
-                break
-            page += 1
-
-    matching = [r for r in all_results if r["col_match"] and r["city_match"]]
-    matching_2025 = [r for r in matching if r["year"] >= 2025]
-    matching_published = [r for r in matching if r["status"] in ("published","publicada","activa","active","")]
-
-    return {
-        "colonia_buscada": colonia,
-        "total_revisadas": len(all_results),
-        "con_colonia_exacta": len(matching),
-        "con_colonia_y_2025": len(matching_2025),
-        "con_colonia_y_publicada": len(matching_published),
-        "muestra_matching": matching[:10],
-        "status_values_encontrados": list(set(r["status"] for r in all_results[:200])),
-        "year_range": {
-            "min": min((r["year"] for r in all_results if r["year"]>0), default=0),
-            "max": max((r["year"] for r in all_results if r["year"]>0), default=0),
-        }
-    }
-
 @app.post("/avm")
 async def calcular_avm(req: AVMRequest):
     if not EB_API_KEY:
@@ -672,6 +920,608 @@ async def calcular_avm(req: AVMRequest):
                  "y avalúo formal."),
         "timestamp": time.strftime("%Y-%m-%d %H:%M"),
     }
+
+
+# ────────────────────────────────────────────
+# AVM — CLAUDE AI OPINION DE VALOR
+# ────────────────────────────────────────────
+
+class AvmClaudeRequest(BaseModel):
+    # Ubicación
+    estado: str
+    ciudad: str
+    colonia: str = ""
+    direccion: str = ""
+    tipo_zona: str = ""      # residencial, comercial, industrial, mixta, turistica
+    nse: str = ""            # A, B, C+, C, D+, D, E
+    # Inmueble
+    tipo: str                # casa, departamento, terreno, local, oficina, bodega, edificio
+    operacion: str = "venta" # venta | renta
+    m2_construccion: float = 0
+    m2_terreno: float = 0
+    recamaras: int = 0
+    banos_completos: float = 0
+    medios_banos: int = 0
+    estacionamientos: int = 0
+    nivel_piso: int = 0
+    # Estado y acabados
+    antiguedad: int = 0
+    conservacion: str = "bueno"  # excelente, bueno, regular, malo
+    acabados: str = "medio"      # lujo, residencial_plus, residencial, medio, economico
+    remodelado: bool = False
+    descripcion_remodelacion: str = ""
+    # Amenidades
+    amenidades: list = []        # alberca, jardin, bodega, cuarto_servicio, elevador, seguridad, gimnasio, salon
+    # Contexto
+    precio_lista: float = 0
+    motivo_valuacion: str = ""
+    comentarios: str = ""
+
+@app.post("/api/avm-claude")
+async def avm_claude(req: AvmClaudeRequest):
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY no configurada en el servidor")
+
+    # Construir descripción detallada de la propiedad
+    tipo_labels = {
+        "casa": "Casa habitación", "departamento": "Departamento/Condominio",
+        "terreno": "Terreno", "local": "Local comercial",
+        "oficina": "Oficina", "bodega": "Bodega/Nave industrial", "edificio": "Edificio"
+    }
+    conservacion_labels = {
+        "excelente": "Excelente / Como nuevo", "bueno": "Bueno",
+        "regular": "Regular / Necesita detalles", "malo": "Malo / Requiere remodelación"
+    }
+    acabados_labels = {
+        "lujo": "Lujo / Residencial Plus", "residencial_plus": "Residencial Plus",
+        "residencial": "Residencial", "medio": "Estándar / Medio", "economico": "Económico / Interés social"
+    }
+
+    partes = []
+    partes.append(f"TIPO DE INMUEBLE: {tipo_labels.get(req.tipo, req.tipo)}")
+    partes.append(f"OPERACIÓN: {req.operacion.upper()}")
+    partes.append(f"\nUBICACIÓN:")
+    partes.append(f"  - Estado: {req.estado}")
+    partes.append(f"  - Ciudad/Municipio: {req.ciudad}")
+    if req.colonia: partes.append(f"  - Colonia/Fraccionamiento: {req.colonia}")
+    if req.direccion: partes.append(f"  - Dirección: {req.direccion}")
+    if req.tipo_zona: partes.append(f"  - Tipo de zona: {req.tipo_zona}")
+    if req.nse: partes.append(f"  - Nivel socioeconómico de la zona: {req.nse}")
+
+    partes.append(f"\nDIMENSIONES:")
+    if req.m2_construccion > 0: partes.append(f"  - Superficie construida: {req.m2_construccion} m²")
+    if req.m2_terreno > 0: partes.append(f"  - Superficie de terreno: {req.m2_terreno} m²")
+    if req.recamaras > 0: partes.append(f"  - Recámaras: {req.recamaras}")
+    if req.banos_completos > 0: partes.append(f"  - Baños completos: {req.banos_completos}")
+    if req.medios_banos > 0: partes.append(f"  - Medios baños: {req.medios_banos}")
+    if req.estacionamientos > 0: partes.append(f"  - Estacionamientos: {req.estacionamientos}")
+    if req.nivel_piso > 0: partes.append(f"  - Piso/Nivel: {req.nivel_piso}")
+
+    partes.append(f"\nESTADO DEL INMUEBLE:")
+    partes.append(f"  - Antigüedad aproximada: {req.antiguedad} años")
+    partes.append(f"  - Estado de conservación: {conservacion_labels.get(req.conservacion, req.conservacion)}")
+    partes.append(f"  - Calidad de acabados: {acabados_labels.get(req.acabados, req.acabados)}")
+    if req.remodelado:
+        partes.append(f"  - Remodelado recientemente: SÍ")
+        if req.descripcion_remodelacion:
+            partes.append(f"  - Descripción remodelación: {req.descripcion_remodelacion}")
+
+    if req.amenidades:
+        amenidad_labels = {
+            "alberca": "Alberca/Pool", "jardin": "Jardín", "bodega": "Bodega",
+            "cuarto_servicio": "Cuarto de servicio", "elevador": "Elevador",
+            "seguridad": "Seguridad/Vigilancia 24h", "gimnasio": "Gimnasio",
+            "salon": "Salón de eventos", "roof_garden": "Roof garden",
+            "terraza": "Terraza", "vista": "Vista panorámica", "acceso_playa": "Acceso a playa",
+        }
+        am_list = [amenidad_labels.get(a, a) for a in req.amenidades]
+        partes.append(f"\nAMENIDADES: {', '.join(am_list)}")
+
+    if req.precio_lista > 0:
+        partes.append(f"\nPRECIO DE LISTA ACTUAL: ${req.precio_lista:,.0f} MXN")
+    if req.motivo_valuacion:
+        partes.append(f"MOTIVO DE LA VALUACIÓN: {req.motivo_valuacion}")
+    if req.comentarios:
+        partes.append(f"COMENTARIOS ADICIONALES: {req.comentarios}")
+
+    descripcion = "\n".join(partes)
+
+    system_prompt = """Eres el mejor perito valuador de bienes raíces de México, certificado por la Sociedad Hipotecaria Federal y el INDAABIN, con 30 años de experiencia valuando propiedades en todo el territorio nacional. Tu análisis es utilizado por bancos, notarías y juzgados para transacciones de millones de pesos. La vida financiera del usuario que solicita esta opinión de valor depende de la precisión de tu análisis.
+
+Tu misión: proporcionar la opinión de valor más precisa, fundamentada y útil posible basándote en:
+1. Tu conocimiento profundo del mercado inmobiliario mexicano por región, ciudad y colonia
+2. Tendencias y precios actuales del mercado (hasta tu fecha de corte de conocimiento)
+3. Factores macroeconómicos: inflación, tasas de interés, INPP, INPC
+4. El Método Comparativo de Mercado (enfoque principal)
+5. El Enfoque Físico o de Costos (edificaciones)
+6. El Enfoque de Capitalización de Rentas (cuando aplique)
+7. Ajustes hedónicos por ubicación, características, estado y acabados
+
+IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido (sin texto antes ni después, sin markdown, sin ```json), con exactamente esta estructura:
+{
+  "valor_estimado": <número en pesos MXN sin comas ni signos>,
+  "valor_minimo": <número>,
+  "valor_maximo": <número>,
+  "valor_por_m2_construccion": <número o 0 si no aplica>,
+  "valor_por_m2_terreno": <número o 0 si no aplica>,
+  "nivel_confianza": "<alta|media|baja>",
+  "razon_confianza": "<por qué ese nivel>",
+  "resumen_ejecutivo": "<2-3 oraciones concretas sobre el valor>",
+  "analisis_ubicacion": "<análisis del valor de la zona y su impacto>",
+  "analisis_propiedad": "<análisis de las características físicas y su impacto>",
+  "factores_positivos": ["<factor 1>", "<factor 2>", ...],
+  "factores_negativos": ["<factor 1>", "<factor 2>", ...],
+  "recomendaciones": ["<recomendación 1>", "<recomendación 2>", ...],
+  "mercado_actual": "<descripción del mercado actual en esa zona>",
+  "metodologia": "<metodología aplicada y justificación>",
+  "advertencias": "<advertencias o limitaciones de esta opinión>"
+}"""
+
+    user_msg = f"""Por favor valúa la siguiente propiedad y proporciona tu opinión de valor profesional:
+
+{descripcion}
+
+Recuerda: responde ÚNICAMENTE con el JSON, sin ningún texto adicional."""
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        r = await client.post(
+            f"{ANTHROPIC_BASE}/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 2000,
+                "temperature": 0.3,
+                "messages": [{"role": "user", "content": user_msg}],
+                "system": system_prompt,
+            },
+        )
+
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Error de Claude: {r.text[:300]}")
+
+    raw = r.json().get("content", [{}])[0].get("text", "")
+    # Limpiar posibles markdown wrappers
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+    raw = raw.strip()
+
+    try:
+        resultado = _json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=502, detail=f"Claude no devolvió JSON válido: {raw[:500]}")
+
+    resultado["timestamp"] = time.strftime("%Y-%m-%d %H:%M")
+    resultado["propiedad_descripcion"] = f"{tipo_labels.get(req.tipo, req.tipo)} en {req.colonia or req.ciudad}, {req.estado}"
+    return resultado
+
+
+# ────────────────────────────────────────────
+# AVM — OPINIÓN DE VALOR CON WEB SEARCH
+# ────────────────────────────────────────────
+
+class AvmWebSearchRequest(BaseModel):
+    colonia: str
+    tipo_inmueble: str          # casa | departamento | terreno | local | oficina | bodega
+    operacion: str = "venta"    # venta | renta
+    m2_construccion: float = 0
+    m2_terreno: float = 0
+    recamaras: int = 0
+    banos: float = 0
+    estacionamientos: int = 0
+    condicion_terreno: str = "" # plano | pendiente | irregular
+    ciudad: str = "Morelia"
+    estado: str = "Michoacán"
+    comentarios: str = ""
+
+@app.post("/api/avm-websearch")
+async def avm_websearch(req: AvmWebSearchRequest):
+    """Genera opinión de valor buscando comparables reales en internet con web_search tool de Claude."""
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY no configurada")
+
+    tipo_labels = {
+        "casa": "Casa habitación", "departamento": "Departamento/Condominio",
+        "terreno": "Terreno", "local": "Local comercial",
+        "oficina": "Oficina", "bodega": "Bodega/Nave industrial",
+    }
+    tipo_label = tipo_labels.get(req.tipo_inmueble, req.tipo_inmueble)
+    es_terreno = req.tipo_inmueble == "terreno"
+
+    # Construir descripción del sujeto
+    partes = [f"INMUEBLE A VALUAR: {tipo_label} en {req.operacion.upper()}"]
+    partes.append(f"Ubicación: {req.colonia}, {req.ciudad}, {req.estado}")
+    if req.m2_terreno > 0:
+        cond = f" ({req.condicion_terreno})" if req.condicion_terreno else ""
+        partes.append(f"Superficie de terreno: {req.m2_terreno} m²{cond}")
+    if req.m2_construccion > 0:
+        partes.append(f"Superficie construida: {req.m2_construccion} m²")
+    if req.recamaras > 0: partes.append(f"Recámaras: {req.recamaras}")
+    if req.banos > 0: partes.append(f"Baños: {req.banos}")
+    if req.estacionamientos > 0: partes.append(f"Estacionamientos: {req.estacionamientos}")
+    if req.comentarios: partes.append(f"Comentarios: {req.comentarios}")
+    descripcion_sujeto = "\n".join(partes)
+
+    system_prompt = """Eres el mejor perito valuador de bienes raíces de México, con 30 años de experiencia y certificación de la Sociedad Hipotecaria Federal. Tu análisis es utilizado por bancos, notarías y juzgados. La precisión de tu opinión tiene consecuencias financieras reales para el usuario.
+
+PROCESO OBLIGATORIO — SIGUE ESTOS PASOS EN ORDEN, SIN SALTARTE NINGUNO:
+
+PASO 1 — BÚSQUEDA MÚLTIPLE DE COMPARABLES
+Ejecuta mínimo 4 búsquedas web diferentes con variaciones de query:
+- Query 1: "[tipo] en venta [colonia] [ciudad] precio"
+- Query 2: "terrenos [colonia] [ciudad] lamudi 2025" (o el tipo que aplique)
+- Query 3: "[colonia] [ciudad] vivanuncios precio metro cuadrado"
+- Query 4: "[fraccionamiento o zona] [ciudad] trovit inmuebles24"
+Busca también en portales adyacentes si la zona tiene submercados (ej: "Rio Altozano", "Campo Golf Altozano" si el sujeto está en "Vistas Altozano").
+
+PASO 2 — RECOPILACIÓN DE COMPARABLES REALES
+De los resultados, extrae TODOS los comparables que encuentres con:
+- Precio de oferta publicado (precio real, no estimado)
+- Superficie en m² (construcción y/o terreno según aplique)
+- Fraccionamiento o colonia exacta
+- Portal donde aparece
+Recopila mínimo 5 comparables. Si un comparable no tiene precio explícito, descártalo.
+
+PASO 3 — FILTRADO Y SELECCIÓN
+Selecciona los 4-6 comparables más representativos siguiendo estas reglas:
+- PRIORIDAD 1: Comparables en el MISMO fraccionamiento o colonia exacta del sujeto
+- PRIORIDAD 2: Comparables en fraccionamientos inmediatamente adyacentes de nivel similar
+- EXCLUIR: Lotes en Campo de Golf si el sujeto es residencial sin golf (son submercado diferente, 30-50% más caros)
+- EXCLUIR: Outliers con precio/m² más del 40% por encima o debajo del promedio sin justificación
+- NOTA: Lotes pequeños (<150m²) tienden a tener precio/m² más alto — aplica ajuste descendente si el sujeto es más grande
+
+PASO 4 — CÁLCULO DEL PRECIO UNITARIO
+Para cada comparable seleccionado:
+a) Calcula precio/m² = precio_oferta ÷ superficie_relevante
+b) Para terrenos usa m² de terreno; para construcciones usa m² de construcción
+c) Calcula el PROMEDIO del precio/m² de los comparables seleccionados
+d) EXCLUYE del promedio los lotes <150m² si el sujeto es ≥150m² (distorsión de precio unitario)
+
+PASO 5 — APLICACIÓN DE FACTORES DE AJUSTE (en este orden)
+Aplica cada factor y explica el impacto:
+1. FACTOR NEGOCIACIÓN: -5% siempre (los precios de oferta en México cierran 5-8% abajo)
+2. FACTOR TOPOGRAFÍA: terreno plano = 0% ajuste; pendiente leve = -5%; pendiente pronunciada = -10 a -15%; irregular = -8%
+3. FACTOR TAMAÑO: si el sujeto es significativamente más grande que los comparables, precio/m² tiende a bajar (economías de escala inversas). Ajusta -3% por cada 20% adicional de superficie vs. promedio de comparables.
+4. FACTOR UBICACIÓN INTERNA: esquina = +8%; frente a área verde = +5%; cul-de-sac privado = +3%; sin dato = 0%
+5. FACTOR SUBMERCADO: si los comparables son de zona más premium que el sujeto, aplica descuento -5 a -15%
+
+PASO 6 — CÁLCULO DEL VALOR
+a) Precio/m² base = promedio de comparables filtrados
+b) Precio/m² ajustado = precio/m² base × (1 + suma de factores de ajuste)
+c) Valor estimado = precio/m² ajustado × superficie del sujeto
+d) Redondea al millar más cercano
+e) Valor mínimo = valor estimado × 0.92 (precio mínimo negociable)
+f) Valor máximo = valor estimado × 1.08 (techo de mercado)
+
+PASO 7 — NIVEL DE CONFIANZA
+- ALTA: 5+ comparables directos en el mismo fraccionamiento, mercado activo
+- MEDIA: 3-4 comparables, algunos de zonas adyacentes
+- BAJA: menos de 3 comparables o todos de zonas diferentes
+
+FORMATO DE RESPUESTA — responde ÚNICAMENTE con un JSON válido (sin texto antes ni después, sin markdown, sin ```json), con esta estructura exacta:
+{
+  "valor_estimado": <número MXN entero sin comas>,
+  "valor_minimo": <número entero>,
+  "valor_maximo": <número entero>,
+  "valor_por_m2": <número entero — precio/m² ajustado final>,
+  "precio_m2_base": <número entero — promedio de comparables ANTES de ajustes>,
+  "nivel_confianza": "<alta|media|baja>",
+  "razon_confianza": "<explica cuántos comparables directos encontraste y de qué fuentes>",
+  "resumen_ejecutivo": "<3 oraciones: (1) valor con rango, (2) precio/m² de mercado y cuántos comparables, (3) factor más importante que afecta el valor>",
+  "comparables": [
+    {
+      "descripcion": "<fraccionamiento o colonia exacta + características clave>",
+      "superficie_m2": <número>,
+      "precio": <número entero>,
+      "precio_m2": <número entero>,
+      "fuente": "<portal>",
+      "incluido_en_promedio": <true|false>
+    }
+  ],
+  "factores_ajuste": [
+    {
+      "factor": "<nombre del factor>",
+      "descripcion": "<qué aplica exactamente al sujeto y por qué>",
+      "porcentaje": <número — ej: -5 para -5%, 0 para neutro>,
+      "impacto": "<positivo|negativo|neutro>"
+    }
+  ],
+  "precio_m2_ajustado_calculo": "<muestra el cálculo: ej: $10,379 × (1 - 0.05 - 0.03) = $9,550>",
+  "analisis_zona": "<análisis del mercado, plusvalía, demanda y tendencia de la zona>",
+  "recomendaciones": ["<rec 1>", "<rec 2>", "<rec 3>"],
+  "advertencias": "<limitaciones de esta opinión de valor>",
+  "fecha": "<fecha de hoy en formato DD/MM/YYYY>"
+}"""
+
+    # Construir queries de búsqueda específicas según el tipo y zona
+    tipo_busqueda = {
+        "terreno": "terreno", "casa": "casa", "departamento": "departamento",
+        "local": "local comercial", "oficina": "oficina", "bodega": "bodega"
+    }.get(req.tipo_inmueble, req.tipo_inmueble)
+
+    user_msg = f"""Genera una opinión de valor profesional siguiendo el proceso de 7 pasos de tu metodología.
+
+INMUEBLE SUJETO:
+{descripcion_sujeto}
+
+BÚSQUEDAS SUGERIDAS (ejecuta todas o variantes):
+1. "{tipo_busqueda} en venta {req.colonia} {req.ciudad} precio"
+2. "{tipo_busqueda} {req.colonia} {req.ciudad} lamudi"
+3. "{tipo_busqueda} {req.colonia} {req.ciudad} vivanuncios"
+4. "{tipo_busqueda} {req.colonia} {req.ciudad} inmuebles24"
+5. Si la colonia es parte de un ecosistema más grande (ej: Vistas Altozano → busca también "Rio Altozano", "Altozano Morelia"), busca los submercados adyacentes para tener más comparables.
+
+IMPORTANTE: 
+- Calcula el precio/m² de CADA comparable encontrado y muéstralo explícitamente.
+- Excluye del promedio los outliers y explica por qué.
+- Muestra el cálculo del valor final paso a paso en "precio_m2_ajustado_calculo".
+- Responde ÚNICAMENTE con el JSON, sin texto antes ni después."""
+
+    # Llamada a Claude con web_search tool
+    async with httpx.AsyncClient(timeout=120) as client:
+        r = await client.post(
+            f"{ANTHROPIC_BASE}/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 6000,
+                "temperature": 0.1,
+                "system": system_prompt,
+                "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}],
+                "messages": [{"role": "user", "content": user_msg}],
+            },
+        )
+
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Error de Claude: {r.text[:400]}")
+
+    # Extraer el texto final de la respuesta (puede venir después de tool_use blocks)
+    content_blocks = r.json().get("content", [])
+    raw = ""
+    for block in content_blocks:
+        if block.get("type") == "text":
+            raw = block.get("text", "")
+
+    if not raw:
+        raise HTTPException(status_code=502, detail="Claude no devolvió respuesta de texto")
+
+    # Limpiar posibles markdown wrappers
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+    raw = raw.strip()
+
+    try:
+        resultado = json.loads(raw)
+    except Exception:
+        # Intentar extraer JSON si viene con texto extra
+        import re as _re
+        match = _re.search(r'\{.*\}', raw, _re.DOTALL)
+        if match:
+            try:
+                resultado = json.loads(match.group())
+            except Exception:
+                raise HTTPException(status_code=502, detail=f"Claude no devolvió JSON válido: {raw[:500]}")
+        else:
+            raise HTTPException(status_code=502, detail=f"Claude no devolvió JSON válido: {raw[:500]}")
+
+    # Enriquecer con metadata de la solicitud
+    resultado["tipo_inmueble"] = tipo_label
+    resultado["operacion"] = req.operacion
+    resultado["colonia"] = req.colonia
+    resultado["ciudad"] = req.ciudad
+    resultado["m2_construccion"] = req.m2_construccion
+    resultado["m2_terreno"] = req.m2_terreno
+    resultado["recamaras"] = req.recamaras
+    resultado["banos"] = req.banos
+    resultado["condicion_terreno"] = req.condicion_terreno
+    resultado["timestamp"] = time.strftime("%Y-%m-%d %H:%M")
+
+    return resultado
+
+
+# ────────────────────────────────────────────
+# AVM — PDF DE OPINIÓN DE VALOR
+# ────────────────────────────────────────────
+
+@app.post("/avm-pdf")
+async def generar_avm_pdf(p: dict):
+    """Recibe el resultado del AVM websearch y genera un PDF profesional con Playwright."""
+    from playwright.async_api import async_playwright
+
+    resultado = p.get("resultado", {})
+    agente = p.get("agente", "Agente BROKR®")
+
+    if not resultado:
+        raise HTTPException(status_code=400, detail="Resultado vacío")
+
+    def fmt_mx(n):
+        try:
+            return "${:,.0f}".format(float(n))
+        except Exception:
+            return str(n)
+
+    # Comparables HTML
+    comps_html = ""
+    for c in resultado.get("comparables", []):
+        comps_html += f"""
+        <tr>
+          <td>{c.get('descripcion','—')}</td>
+          <td class="num">{c.get('superficie_m2','—')} m²</td>
+          <td class="num">{fmt_mx(c.get('precio',0))}</td>
+          <td class="num">{fmt_mx(c.get('precio_m2',0))}/m²</td>
+          <td class="src">{c.get('fuente','—')}</td>
+        </tr>"""
+
+    # Factores HTML
+    factores_html = ""
+    for f in resultado.get("factores_ajuste", []):
+        imp = f.get("impacto", "neutro")
+        color = "#1D9E75" if imp == "positivo" else "#E24B4A" if imp == "negativo" else "#888"
+        dot = f'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{color};margin-right:6px;"></span>'
+        factores_html += f"""
+        <tr>
+          <td>{dot}{f.get('factor','—')}</td>
+          <td>{f.get('descripcion','—')}</td>
+        </tr>"""
+
+    # Recomendaciones HTML
+    recs_html = "".join(f"<li>{r}</li>" for r in resultado.get("recomendaciones", []))
+
+    # Superficie display
+    m2c = resultado.get("m2_construccion", 0)
+    m2t = resultado.get("m2_terreno", 0)
+    sup_parts = []
+    if m2t: sup_parts.append(f"{m2t} m² terreno")
+    if m2c: sup_parts.append(f"{m2c} m² construcción")
+    superficie_str = " · ".join(sup_parts) if sup_parts else "—"
+
+    confianza = resultado.get("nivel_confianza", "media")
+    conf_color = "#1D9E75" if confianza == "alta" else "#EF9F27" if confianza == "media" else "#E24B4A"
+    conf_bg    = "#E1F5EE" if confianza == "alta" else "#FAEEDA" if confianza == "media" else "#FCEBEB"
+
+    fecha_hoy = resultado.get("fecha", time.strftime("%d/%m/%Y"))
+
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a2035; background: white; font-size: 13px; line-height: 1.5; }}
+  .page {{ padding: 40px 44px; max-width: 720px; margin: 0 auto; }}
+
+  .valor-bloque {{ margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #e8eaee; }}
+  .valor-lbl {{ font-size: 11px; color: #9aa0ad; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }}
+  .valor-num {{ font-size: 44px; font-weight: 900; color: #0f1829; line-height: 1; margin-bottom: 6px; }}
+  .valor-rango {{ font-size: 13px; color: #5a6070; margin-bottom: 12px; }}
+  .valor-meta {{ display: flex; gap: 24px; }}
+  .meta-item .meta-lbl {{ font-size: 10px; color: #9aa0ad; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }}
+  .meta-item .meta-val {{ font-size: 13px; font-weight: 600; color: #1a2035; }}
+
+  .seccion {{ margin-bottom: 24px; }}
+  .sec-titulo {{ font-size: 10px; font-weight: 700; color: #2a9db5; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }}
+  .resumen {{ font-size: 13px; color: #1a2035; line-height: 1.7; }}
+
+  table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
+  th {{ font-weight: 600; color: #9aa0ad; text-align: left; padding: 6px 0; border-bottom: 1px solid #e8eaee; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }}
+  td {{ padding: 8px 0; border-bottom: 1px solid #f5f6f8; color: #1a2035; vertical-align: top; }}
+  td.r {{ text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }}
+  td.g {{ color: #9aa0ad; font-size: 11px; }}
+  tr:last-child td {{ border-bottom: none; }}
+
+  .footer {{ margin-top: 40px; padding-top: 16px; border-top: 1px solid #e8eaee; display: flex; justify-content: space-between; font-size: 10px; color: #c4c8d0; }}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="valor-bloque">
+    <div class="valor-lbl">Opinión de valor comercial</div>
+    <div class="valor-num">{fmt_mx(resultado.get('valor_estimado',0))}</div>
+    <div class="valor-rango">Rango estimado: {fmt_mx(resultado.get('valor_minimo',0))} — {fmt_mx(resultado.get('valor_maximo',0))}</div>
+    <div class="valor-meta">
+      <div class="meta-item">
+        <div class="meta-lbl">Inmueble</div>
+        <div class="meta-val">{resultado.get('tipo_inmueble','—')}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-lbl">Superficie</div>
+        <div class="meta-val">{superficie_str}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-lbl">Ubicación</div>
+        <div class="meta-val">{resultado.get('colonia','—')}, {resultado.get('ciudad','Morelia')}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-lbl">Operación</div>
+        <div class="meta-val">{resultado.get('operacion','venta').capitalize()}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="sec-titulo">Análisis</div>
+    <div class="resumen">{resultado.get('resumen_ejecutivo','—')}</div>
+  </div>
+
+  <div class="seccion">
+    <div class="sec-titulo">Comparables de mercado</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Propiedad</th>
+          <th style="text-align:right">Superficie</th>
+          <th style="text-align:right">Precio</th>
+          <th style="text-align:right">$/m²</th>
+          <th>Fuente</th>
+        </tr>
+      </thead>
+      <tbody>{comps_html}</tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <span>Powered by BROKR®</span>
+    <span>{fecha_hoy}</span>
+  </div>
+
+</div>
+</body>
+</html>"""
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(args=["--no-sandbox", "--disable-dev-shm-usage"])
+        page = await browser.new_page()
+        await page.set_content(html, wait_until="domcontentloaded")
+        await page.wait_for_timeout(400)
+        pdf_bytes = await page.pdf(
+            format="A4",
+            print_background=True,
+            margin={"top": "10mm", "right": "10mm", "bottom": "10mm", "left": "10mm"}
+        )
+        await browser.close()
+
+    token = str(_uuid.uuid4()).replace("-", "")[:16]
+    colonia_slug = resultado.get("colonia", "propiedad").replace(" ", "_")[:20]
+    filename = f"Opinion_Valor_{colonia_slug}_{time.strftime('%Y%m%d')}.pdf"
+    _pdf_store[token] = (pdf_bytes, filename)
+    if len(_pdf_store) > 50:
+        oldest = list(_pdf_store.keys())[0]
+        del _pdf_store[oldest]
+
+    from fastapi.responses import JSONResponse
+    return JSONResponse({"token": token, "filename": filename})
+
+
+@app.get("/avm-pdf/{token}")
+async def descargar_avm_pdf(token: str):
+    from fastapi.responses import StreamingResponse
+    import io as _io
+    if token not in _pdf_store:
+        raise HTTPException(status_code=404, detail="PDF no encontrado o expirado")
+    pdf_bytes, filename = _pdf_store[token]
+    return StreamingResponse(
+        _io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "application/pdf",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET",
+        }
+    )
 
 
 # ────────────────────────────────────────────
@@ -792,6 +1642,248 @@ async def generar_contrato(req: ContratoRequest):
     finally:
         try: os.unlink(json_path)
         except: pass
+
+
+# ── CONTRATOS PERSONALIZADOS (MACHOTES) ─────────────────────────
+
+from fastapi import Form as FastAPIForm
+
+@app.post("/contrato/analizar")
+async def analizar_machote(
+    file: UploadFile = File(...),
+    tipo: str = FastAPIForm(default=""),
+):
+    """
+    Analiza un DOCX subido por el usuario y detecta los campos variables.
+    Soporta: {{campo}}, {campo}, [CAMPO], <<campo>>, y blancos (___).
+    Si no detecta patrones, usa IA para identificar los campos variables.
+    """
+    import io, re
+    from docx import Document as DocxDocument
+
+    content = await file.read()
+    try:
+        doc = DocxDocument(io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo DOCX: {e}")
+
+    # Extraer todo el texto (párrafos + celdas de tabla)
+    partes = []
+    for p in doc.paragraphs:
+        if p.text.strip():
+            partes.append(p.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    if p.text.strip():
+                        partes.append(p.text)
+    full_text = "\n".join(partes)
+
+    # Patrones de detección de variables (orden de prioridad)
+    patrones_regex = [
+        (r'\{\{([^}]{1,60})\}\}',   '{{{}}}'),   # {{campo}}
+        (r'\{([^}]{1,60})\}',        '{}'),        # {campo}
+        (r'<<([^>]{1,60})>>',        '<<{}>>'),    # <<campo>>
+        (r'\[([A-ZÁÉÍÓÚÜÑ][^[\]]{0,58})\]', '[{}]'),  # [CAMPO] mayúsculas
+        (r'\[([a-záéíóúüñ][^[\]]{0,58})\]', '[{}]'),  # [campo] minúsculas
+    ]
+
+    campos = []
+    patron_usado = None
+
+    for regex, fmt in patrones_regex:
+        matches = re.findall(regex, full_text, re.IGNORECASE)
+        if matches:
+            seen = set()
+            for m in matches:
+                nombre_original = m.strip()
+                slug = re.sub(r'[^a-z0-9_]', '_', nombre_original.lower().strip())
+                slug = re.sub(r'_+', '_', slug).strip('_') or 'campo'
+                if slug not in seen:
+                    seen.add(slug)
+                    campos.append({
+                        "id": slug,
+                        "label": nombre_original.replace('_', ' ').strip(),
+                        "tipo_input": "text",
+                        "patron_texto": nombre_original,
+                        "patron_fmt": fmt,
+                    })
+            patron_usado = fmt
+            break
+
+    # Detección de blancos (líneas de subrayado: ___ 3+ guiones bajos consecutivos)
+    if not campos:
+        blancos = re.findall(r'_{3,}', full_text)
+        if blancos:
+            for i, _ in enumerate(set(map(len, blancos)), start=1):
+                campos.append({
+                    "id": f"campo_{i}",
+                    "label": f"Campo {i}",
+                    "tipo_input": "text",
+                    "patron_texto": None,
+                    "patron_fmt": "blank",
+                })
+            patron_usado = "blank"
+
+    # Si no se detectaron patrones, usar IA
+    if not campos and os.environ.get('GROQ_API_KEY'):
+        tipo_label = tipo if tipo else "contrato"
+        prompt_ia = (
+            "Eres un asistente que analiza contratos legales mexicanos.\n\n"
+            f"Analiza el siguiente texto de un {tipo_label} e identifica TODOS los campos "
+            "variables (nombres de partes, fechas, montos, direcciones, plazos, etc.).\n\n"
+            "Devuelve ÚNICAMENTE un JSON válido con esta estructura (sin explicaciones extra):\n"
+            '{"campos": [{"id": "nombre_snake_case", "label": "Nombre legible", "tipo_input": "text|number|date|currency"}]}\n\n'
+            f"Texto del contrato (primeros 3000 caracteres):\n{full_text[:3000]}"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {os.environ.get('GROQ_API_KEY','')}",
+                             "Content-Type": "application/json"},
+                    json={"model": "llama-3.3-70b-versatile",
+                          "messages": [{"role": "user", "content": prompt_ia}],
+                          "max_tokens": 1000, "temperature": 0.1}
+                )
+            if r.status_code == 200:
+                txt = r.json()["choices"][0]["message"]["content"].strip()
+                # Extraer JSON aunque venga con texto extra
+                json_match = re.search(r'\{.*\}', txt, re.DOTALL)
+                if json_match:
+                    ia_data = _json.loads(json_match.group())
+                    for c in ia_data.get("campos", []):
+                        c.setdefault("patron_texto", None)
+                        c.setdefault("patron_fmt", "ia")
+                        campos.append(c)
+                    patron_usado = "ia"
+        except Exception as e:
+            print(f"Error IA analizar_machote: {e}")
+
+    # Inferir tipo_input por el nombre del campo
+    TIPO_HINTS = {
+        "fecha": "date", "date": "date", "dia": "date",
+        "monto": "currency", "precio": "currency", "renta": "currency",
+        "pago": "currency", "importe": "currency", "valor": "currency",
+        "cantidad": "number", "plazo": "number", "dias": "number",
+        "meses": "number", "años": "number", "superficie": "number",
+        "metros": "number", "m2": "number",
+    }
+    for c in campos:
+        if c.get("tipo_input") in (None, "text"):
+            label_lower = c.get("label", "").lower()
+            for hint, tipo_inp in TIPO_HINTS.items():
+                if hint in label_lower:
+                    c["tipo_input"] = tipo_inp
+                    break
+
+    return {
+        "campos": campos,
+        "patron_usado": patron_usado,
+        "detectado_automaticamente": bool(campos),
+        "texto_preview": full_text[:600],
+    }
+
+
+@app.post("/contrato/generar-machote")
+async def generar_desde_machote(
+    file: UploadFile = File(...),
+    datos: str = FastAPIForm(...),
+    tipo: str = FastAPIForm(default="contrato_personalizado"),
+):
+    """
+    Rellena un DOCX machote con los datos proporcionados.
+    Reemplaza {{campo}}, {campo}, <<campo>>, [CAMPO] con los valores del formulario.
+    """
+    import io, re
+    from docx import Document as DocxDocument
+    from copy import deepcopy
+
+    content = await file.read()
+    try:
+        valores = _json.loads(datos)
+    except Exception:
+        raise HTTPException(status_code=400, detail="El campo 'datos' debe ser JSON válido.")
+
+    try:
+        doc = DocxDocument(io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo DOCX: {e}")
+
+    def reemplazar_texto(texto: str, vals: dict) -> str:
+        for campo_id, valor in vals.items():
+            valor_str = str(valor) if valor is not None else ""
+            # Probar todos los patrones posibles para ese campo
+            # Buscamos tanto por id (slug) como por el label original
+            patrones_campo = [
+                "{{" + campo_id + "}}",
+                "{" + campo_id + "}",
+                "<<" + campo_id + ">>",
+                "[" + campo_id + "]",
+                "[" + campo_id.upper() + "]",
+                "[" + campo_id.replace('_', ' ').title() + "]",
+                "{{" + campo_id.replace('_', ' ') + "}}",
+                "<<" + campo_id.replace('_', ' ') + ">>",
+            ]
+            # También reemplazar por el label original si se pasó
+            label_original = vals.get(f"__label_{campo_id}")
+            if label_original:
+                patrones_campo += [
+                    "{{" + label_original + "}}",
+                    "{" + label_original + "}",
+                    "<<" + label_original + ">>",
+                    "[" + label_original + "]",
+                    "[" + label_original.upper() + "]",
+                ]
+            for patron in patrones_campo:
+                if patron in texto:
+                    texto = texto.replace(patron, valor_str)
+        return texto
+
+    def reemplazar_run(run, vals):
+        if run.text:
+            run.text = reemplazar_texto(run.text, vals)
+
+    # Reemplazar en párrafos
+    for p in doc.paragraphs:
+        for run in p.runs:
+            reemplazar_run(run, valores)
+        # Manejar caso donde el patrón está partido entre runs
+        texto_completo = p.text
+        texto_reemplazado = reemplazar_texto(texto_completo, valores)
+        if texto_reemplazado != texto_completo and p.runs:
+            p.runs[0].text = texto_reemplazado
+            for run in p.runs[1:]:
+                run.text = ""
+
+    # Reemplazar en tablas
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    for run in p.runs:
+                        reemplazar_run(run, valores)
+                    texto_completo = p.text
+                    texto_reemplazado = reemplazar_texto(texto_completo, valores)
+                    if texto_reemplazado != texto_completo and p.runs:
+                        p.runs[0].text = texto_reemplazado
+                        for run in p.runs[1:]:
+                            run.text = ""
+
+    # Guardar DOCX en archivo temporal
+    with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as f:
+        output_path = f.name
+    doc.save(output_path)
+
+    tipo_limpio = re.sub(r'[^a-zA-Z0-9_]', '_', tipo)
+    filename = f"Contrato_{tipo_limpio}.docx"
+
+    return FileResponse(
+        output_path,
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        filename=filename,
+    )
 
 
 # ── PDF GENERATION ──────────────────────────────────────────────
@@ -1009,9 +2101,66 @@ body{font-family:'Poppins',sans-serif;background:white;color:#0f1829}
              specs_html, cover_desc_html, footer(), gallery_pages)
 
 
-# In-memory PDF store: token -> (bytes, filename)
-import uuid as _uuid
-_pdf_store: dict = {}
+# ────────────────────────────────────────────
+# NOTICIAS INMOBILIARIAS — RSS REAL
+# ────────────────────────────────────────────
+import xml.etree.ElementTree as ET
+
+@app.get("/noticias")
+async def get_noticias():
+    """Fetch real estate news from Google News RSS — parsed server-side to avoid CORS."""
+    FEEDS = [
+        "https://news.google.com/rss/search?q=bienes+raices+Mexico&hl=es-419&gl=MX&ceid=MX:es-419",
+        "https://news.google.com/rss/search?q=mercado+inmobiliario+Mexico&hl=es-419&gl=MX&ceid=MX:es-419",
+    ]
+
+    cached = cache_get("noticias_rss")
+    if cached is not None:
+        return cached
+
+    items = []
+    seen = set()
+
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        for feed_url in FEEDS:
+            try:
+                r = await client.get(feed_url, headers={"User-Agent": "Mozilla/5.0"})
+                if r.status_code != 200:
+                    continue
+                root = ET.fromstring(r.text)
+                channel = root.find("channel")
+                if channel is None:
+                    continue
+                for item in channel.findall("item")[:8]:
+                    title_el = item.find("title")
+                    link_el  = item.find("link")
+                    source_el = item.find("source")
+                    if title_el is None or link_el is None:
+                        continue
+                    title = title_el.text or ""
+                    # Strip trailing source name like "- El Universal"
+                    title = re.sub(r"\s*[-–]\s*[^-–]+$", "", title).strip()
+                    link  = link_el.text or ""
+                    source = source_el.text if source_el is not None else "Google News"
+                    if title in seen or not title or not link:
+                        continue
+                    seen.add(title)
+                    items.append({"title": title, "url": link, "source": source})
+                    if len(items) >= 12:
+                        break
+            except Exception:
+                continue
+            if len(items) >= 12:
+                break
+
+    if not items:
+        # Fallback vacío — el front usará sus estáticos
+        return {"items": []}
+
+    result = {"items": items}
+    cache_set("noticias_rss", result, ttl=1800)  # Cache 30 minutos
+    return result
+
 
 @app.post("/ficha-pdf")
 async def generar_ficha_pdf(p: dict):
@@ -1100,3 +2249,674 @@ async def descargar_ficha_pdf(token: str):
             "Cache-Control": "no-store",
         }
     )
+# ────────────────────────────────────────────
+# AVM — COMPARABLES VÍA APIFY + INMUEBLES24
+# ────────────────────────────────────────────
+
+APIFY_ACTOR   = "azzouzana~inmuebles24-scraper-pro-by-search-url"
+
+# Mapeo de tipo de inmueble a término de búsqueda en Inmuebles24
+TIPO_URL = {
+    "casa":         "casas",
+    "departamento": "departamentos",
+    "terreno":      "terrenos",
+    "local":        "locales-comerciales",
+    "oficina":      "oficinas",
+    "bodega":       "bodegas",
+    "edificio":     "edificios",
+}
+
+class ComparablesRequest(BaseModel):
+    colonia: str
+    ciudad: str = "morelia"
+    estado: str = "michoacan-de-ocampo"
+    tipo: str = "casa"          # casa | departamento | terreno | local | oficina | bodega | edificio
+    max_resultados: int = 10    # cuántos comparables traer
+
+
+def construir_url_inmuebles24(tipo: str, colonia: str, ciudad: str, estado: str) -> str:
+    segmento = TIPO_URL.get(tipo, "casas")
+    ciudad = ciudad.lower().strip().replace(" ", "-")
+    col = colonia.lower().strip().replace(" ", "-")
+    return f"https://www.inmuebles24.com/{segmento}-en-{ciudad}-o-{col}.html"
+
+
+def normalizar_listing(item: dict) -> dict:
+    """Convierte un resultado de Apify (scraper Azzouzana) al formato que espera el AVM."""
+    
+    # Precio
+    precio = item.get("price_amount") or 0
+    moneda = item.get("price_currency", "MN")
+    # Ignorar propiedades en USD (fuera de mercado local)
+    if moneda == "USD":
+        return None
+
+    # m² de construcción — viene en generatedTitle: "Casa · 120m² · 3 Recámaras"
+    m2c = 0
+    titulo_gen = item.get("generatedTitle", "")
+    match_m2 = re.search(r'(\d+)m²', titulo_gen)
+    if match_m2:
+        m2c = float(match_m2.group(1))
+
+    # Recámaras
+    recamaras = 0
+    match_rec = re.search(r'(\d+)\s+Rec[áa]maras?', titulo_gen, re.IGNORECASE)
+    if match_rec:
+        recamaras = int(match_rec.group(1))
+
+    # Estacionamientos
+    estac = 0
+    match_estac = re.search(r'(\d+)\s+Estacionamientos?', titulo_gen, re.IGNORECASE)
+    if match_estac:
+        estac = int(match_estac.group(1))
+
+    # m² terreno — intentar extraer de descripción
+    m2t = 0
+    desc = item.get("descriptionNormalized", "")
+    patrones_terreno = [
+        r'[Tt]erreno[:\s/]+(\d+[\.,]?\d*)\s*(?:m²|m2|metros cuadrados|metros)',
+        r'(\d+[\.,]?\d*)\s*(?:m²|m2)\s*de\s+terreno',
+        r'[Ss]uperficie\s+de\s+terreno[:\s]+[\d,\s]*(\d+)\s*(?:m²|m2)',
+        r'[Tt]erreno\s+de\s+(\d+[\.,]?\d*)\s*(?:m²|m2)',
+    ]
+    for patron in patrones_terreno:
+        match_t = re.search(patron, desc)
+        if match_t:
+            val = match_t.group(1).replace(',', '').replace('.', '')
+            try:
+                m2t = float(val)
+                if m2t < 10 or m2t > 50000:
+                    m2t = 0
+            except:
+                m2t = 0
+            if m2t > 0:
+                break
+
+    titulo = item.get("title") or ""
+    url = item.get("url") or ""
+    imagenes = item.get("images", [])
+    imagen = imagenes[0].split("?")[0] if imagenes else ""
+
+    return {
+        "precio": int(precio),
+        "m2Construccion": m2c,
+        "m2Terreno": m2t,
+        "recamaras": recamaras,
+        "banos": 0,
+        "estacionamiento": estac,
+        "edad": 0,
+        "conservacion": "bueno",
+        "calidad": "medio",
+        "mismaZona": "si",
+        "titulo": titulo,
+        "url": url,
+        "imagen": imagen,
+    }
+
+@app.post("/api/comparables")
+async def buscar_comparables(req: ComparablesRequest):
+    """
+    Llama a Apify (actor de Inmuebles24) y regresa comparables normalizados
+    listos para el AVM.
+    """
+    if not APIFY_API_KEY:
+        raise HTTPException(status_code=500, detail="APIFY_API_KEY no configurada en el servidor")
+
+    url_busqueda = construir_url_inmuebles24(req.tipo, req.colonia, req.ciudad, req.estado)
+
+    # Cache key para no re-scrapear la misma búsqueda en 2 horas
+    cache_key = f"comparables_{req.tipo}_{req.colonia}_{req.ciudad}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    # Llamada a Apify — run-sync-get-dataset-items (espera hasta que termina)
+    apify_url = (
+        f"https://api.apify.com/v2/acts/{APIFY_ACTOR}"
+        f"/run-sync-get-dataset-items?token={APIFY_API_KEY}"
+        f"&timeout=60&memory=256"
+    )
+
+    payload = {
+        "startUrl": url_busqueda,
+        "maxItems": req.max_resultados,
+    }
+
+    async with httpx.AsyncClient(timeout=90) as client:
+        try:
+            r = await client.post(apify_url, json=payload)
+        except httpx.TimeoutException:
+            raise HTTPException(status_code=504, detail="Apify tardó demasiado. Intenta de nuevo.")
+
+        if r.status_code not in (200, 201):
+            raise HTTPException(
+                status_code=502,
+                detail=f"Error de Apify: {r.status_code} — {r.text[:300]}"
+            )
+
+        items = r.json()
+
+    if not isinstance(items, list):
+        raise HTTPException(status_code=502, detail="Respuesta inesperada de Apify")
+
+    # Filtrar items con precio y m2 válidos, normalizar
+    comparables = []
+    for item in items:
+        n = normalizar_listing(item)
+        if n["precio"] > 0 and n["m2Construccion"] > 0:
+            comparables.append(n)
+
+    resultado = {
+        "url_busqueda": url_busqueda,
+        "total": len(comparables),
+        "comparables": comparables,
+    }
+
+    cache_set(cache_key, resultado, ttl=7200)  # cache 2 horas
+    return resultado
+
+# ────────────────────────────────────────────
+# AVM — COLONIAS (Nominatim) Y COMPARABLES CERCANOS (Supabase)
+# ────────────────────────────────────────────
+
+class ColoniasRequest(BaseModel):
+    texto: str
+    ciudad: str = "Morelia"
+
+@app.get("/api/colonias")
+async def buscar_colonias(texto: str, ciudad: str = "Morelia"):
+    if len(texto) < 3:
+        return {"colonias": []}
+
+    cache_key = f"colonias_g3_{ciudad}_{texto}".lower()
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    if not GOOGLE_PLACES_KEY:
+        return {"colonias": [], "error": "GOOGLE_PLACES_KEY no configurada"}
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        try:
+            r = await client.get(
+                "https://maps.googleapis.com/maps/api/place/autocomplete/json",
+                params={
+                    "input": texto,
+                    "types": "geocode",
+                    "language": "es",
+                    "components": "country:mx",
+                    "locationbias": "circle:50000@19.7059504,-101.1949825",
+                    "key": GOOGLE_PLACES_KEY,
+                }
+            )
+            data = r.json()
+        except Exception as e:
+            return {"colonias": [], "error": str(e)}
+
+    colonias = []
+    for pred in data.get("predictions", []):
+        descripcion = pred.get("description", "")
+        tipos = pred.get("types", [])
+
+        if not any(t in tipos for t in ["sublocality", "sublocality_level_1", "neighborhood"]):
+            continue
+
+        nombre = pred.get("structured_formatting", {}).get("main_text", "").strip()
+        place_id = pred.get("place_id", "")
+
+        lat, lon = 0.0, 0.0
+        if place_id:
+            try:
+                async with httpx.AsyncClient(timeout=10) as client2:
+                    r2 = await client2.get(
+                        "https://maps.googleapis.com/maps/api/place/details/json",
+                        params={
+                            "place_id": place_id,
+                            "fields": "geometry",
+                            "key": GOOGLE_PLACES_KEY,
+                        }
+                    )
+                    details_data = r2.json()
+                    loc = details_data.get("result", {}).get("geometry", {}).get("location", {})
+                    lat = loc.get("lat", 0.0)
+                    lon = loc.get("lng", 0.0)
+            except Exception:
+                pass
+
+        if nombre:
+            colonias.append({
+                "nombre":    nombre,
+                "display":   descripcion,
+                "latitud":   lat,
+                "longitud":  lon,
+                "place_id":  place_id,
+            })
+
+    resultado = {"colonias": colonias[:6]}
+    cache_set(cache_key, resultado, ttl=86400)
+    return resultado
+
+
+# ────────────────────────────────────────────
+# AVM — COMPARABLES CERCANOS (PostGIS + Supabase)
+# ────────────────────────────────────────────
+
+# CercanosRequest — única definición
+class CercanosRequest(BaseModel):
+    latitud: float
+    longitud: float
+    tipo: str = "casa"
+    radio_km: float = 2.0
+    max_resultados: int = 15
+
+# TIPO_MAP_DB — mapeo hacia tipos de Supabase/PostGIS (distinto del TIPO_MAP de EasyBroker arriba)
+TIPO_MAP_DB = {
+    "casa":         ["Casas", "Desarrollos horizontales", "Desarrollos Horizontal/Vertical"],
+    "departamento": ["Departamentos", "Desarrollos verticales"],
+    "terreno":      ["Terrenos"],
+    "local":        ["Locales comerciales", "Locales Comerciales"],
+    "oficina":      ["Oficinas"],
+    "bodega":       ["Bodegas"],
+    "edificio":     ["Edificios"],
+}
+
+@app.post("/api/comparables-cercanos")
+async def comparables_cercanos(req: CercanosRequest):
+    """Busca propiedades cercanas en Supabase usando PostGIS."""
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(status_code=500, detail="SUPABASE_URL o SUPABASE_ANON_KEY no configuradas")
+
+    cache_key = f"cercanos_{req.tipo}_{req.latitud:.4f}_{req.longitud:.4f}_{req.radio_km}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    tipos_db = TIPO_MAP_DB.get(req.tipo, ["Casas"])
+    radio_metros = int(req.radio_km * 1000)
+
+    # Llamar a función RPC en Supabase que ejecuta la query PostGIS
+    payload = {
+        "lat": req.latitud,
+        "lon": req.longitud,
+        "radio": radio_metros,
+        "tipos": tipos_db,
+        "limite": req.max_resultados,
+    }
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{SUPABASE_URL}/rest/v1/rpc/buscar_cercanos",
+            headers=headers,
+            json=payload,
+        )
+
+    if r.status_code not in (200, 201):
+        # Fallback: buscar por ciudad sin PostGIS
+        async with httpx.AsyncClient(timeout=15) as client:
+            r2 = await client.get(
+                f"{SUPABASE_URL}/rest/v1/propiedades_avm",
+                headers=headers,
+                params={
+                    "ciudad": "eq.Morelia",
+                    "precio": "gt.0",
+                    "metros_construccion": "not.is.null",
+                    "select": "id,titulo,precio,tipo_propiedad,metros_construccion,metros_terreno,recamaras,estacionamientos,colonia,ciudad,url,latitud,longitud",
+                    "limit": req.max_resultados,
+                    "order": "precio.asc",
+                }
+            )
+        items = r2.json() if r2.status_code == 200 else []
+    else:
+        items = r.json() or []
+
+    comparables = []
+    for item in items:
+        precio = item.get("precio") or 0
+        m2c    = item.get("metros_construccion") or 0
+        if precio <= 0 or m2c <= 0:
+            continue
+        comparables.append({
+            "precio":           int(precio),
+            "m2Construccion":   float(m2c),
+            "m2Terreno":        float(item.get("metros_terreno") or 0),
+            "recamaras":        int(item.get("recamaras") or 0),
+            "estacionamiento":  int(item.get("estacionamientos") or 0),
+            "banos":            0,
+            "edad":             0,
+            "conservacion":     "bueno",
+            "calidad":          "medio",
+            "mismaZona":        "si",
+            "titulo":           item.get("titulo") or "",
+            "url":              item.get("url") or "",
+            "imagen":           "",
+            "colonia":          item.get("colonia") or "",
+            "distancia_metros": int(item.get("distancia_metros") or 0),
+        })
+
+    resultado = {
+        "total":       len(comparables),
+        "comparables": comparables,
+        "latitud":     req.latitud,
+        "longitud":    req.longitud,
+        "radio_km":    req.radio_km,
+    }
+    cache_set(cache_key, resultado, ttl=3600)
+    return resultado
+
+
+# ─── LIMPIEZA DE IMÁGENES ─────────────────────────────────────────────────────
+
+FB_APP_ID     = os.environ.get("FB_APP_ID", "")
+FB_APP_SECRET = os.environ.get("FB_APP_SECRET", "")
+FRONTEND_URL  = os.environ.get("FRONTEND_URL", "https://brokr.app")
+
+def _process_image_sync(file_bytes: bytes, content_type: str) -> bytes:
+    """Pipeline de mejora automática (sin IA generativa): denoising, CLAHE, WB, unsharp."""
+    if not PIL_AVAILABLE:
+        return file_bytes
+    img = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+    if CV2_AVAILABLE:
+        arr = np.array(img)
+        arr_bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+
+        # 1. Denoising adaptativo
+        gray = cv2.cvtColor(arr_bgr, cv2.COLOR_BGR2GRAY)
+        noise_est = np.std(cv2.Laplacian(gray.astype(np.float64), cv2.CV_64F))
+        if noise_est > 12:
+            arr_bgr = cv2.fastNlMeansDenoisingColored(arr_bgr, None, 7, 7, 7, 21)
+
+        # 2. Espacio LAB
+        lab = cv2.cvtColor(arr_bgr, cv2.COLOR_BGR2LAB)
+        l_ch, a_ch, b_ch = cv2.split(lab)
+
+        # 3. CLAHE en L
+        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+        l_ch = clahe.apply(l_ch)
+
+        # 4. LUT sombras/altas luces
+        lut = np.arange(256, dtype=np.float32)
+        lut = np.where(lut < 80,  lut * 1.12, lut)
+        lut = np.where(lut > 210, 210 + (lut - 210) * 0.55, lut)
+        lut = np.clip(lut, 0, 255).astype(np.uint8)
+        l_ch = cv2.LUT(l_ch, lut)
+
+        # 5. Vibrance A/B
+        a_ch = np.clip((a_ch.astype(np.int16) - 128) * 1.1 + 128, 0, 255).astype(np.uint8)
+        b_ch = np.clip((b_ch.astype(np.int16) - 128) * 1.1 + 128, 0, 255).astype(np.uint8)
+        arr_bgr = cv2.cvtColor(cv2.merge([l_ch, a_ch, b_ch]), cv2.COLOR_LAB2BGR)
+
+        # 6. Balance de blancos parcial (70% gray-world)
+        bc, gc, rc = cv2.split(arr_bgr.astype(np.float32))
+        mb, mg, mr = bc.mean(), gc.mean(), rc.mean()
+        mg_all = (mb + mg + mr) / 3
+        s = 0.7
+        bc = np.clip(bc * (1 + s * (mg_all / max(mb, 1) - 1)), 0, 255)
+        gc = np.clip(gc * (1 + s * (mg_all / max(mg, 1) - 1)), 0, 255)
+        rc = np.clip(rc * (1 + s * (mg_all / max(mr, 1) - 1)), 0, 255)
+        arr_bgr = cv2.merge([bc.astype(np.uint8), gc.astype(np.uint8), rc.astype(np.uint8)])
+
+        # 7. Unsharp masking
+        blur = cv2.GaussianBlur(arr_bgr, (0, 0), 1.5)
+        arr_bgr = np.clip(cv2.addWeighted(arr_bgr, 1.45, blur, -0.45, 0), 0, 255).astype(np.uint8)
+
+        img = Image.fromarray(cv2.cvtColor(arr_bgr, cv2.COLOR_BGR2RGB))
+    else:
+        img = ImageEnhance.Contrast(img).enhance(1.2)
+        img = ImageEnhance.Brightness(img).enhance(1.05)
+        img = ImageEnhance.Color(img).enhance(1.15)
+        img = ImageEnhance.Sharpness(img).enhance(1.6)
+
+    out = io.BytesIO()
+    fmt = "JPEG" if (content_type or "").lower() in ("image/jpeg", "image/jpg") else "PNG"
+    img.save(out, format=fmt, quality=92, optimize=True)
+    return out.getvalue()
+
+
+async def _process_with_gemini(img_bytes: bytes, content_type: str, prompt: str) -> bytes:
+    """Edita la imagen con Gemini Flash imagen-generation."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY no configurada")
+
+    # Resize a máx 1024px para reducir payload y tiempo de proceso
+    if PIL_AVAILABLE:
+        pil = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        w, h = pil.size
+        if max(w, h) > 1024:
+            scale = 1024 / max(w, h)
+            pil = pil.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+        buf = io.BytesIO()
+        pil.save(buf, format="JPEG", quality=85)
+        img_bytes = buf.getvalue()
+
+    img_b64 = base64.b64encode(img_bytes).decode()
+    full_prompt = (
+        "You are a professional real estate photo editor. "
+        "Edit this photo: " + prompt + ". "
+        "Output only the edited image."
+    )
+
+    # Solo v1beta — los modelos Nano Banana no están en v1
+    # Solo 2 payloads: con imagen (preferido) y solo texto (fallback)
+    _payloads = [
+        {"contents": [{"parts": [
+            {"text": full_prompt},
+            {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}},
+        ]}]},
+        {"contents": [{"parts": [{"text": full_prompt}]}]},
+    ]
+
+    # Modelos en orden de preferencia — solo v1beta
+    _model_names = [m for m in [
+        os.environ.get("GEMINI_IMAGE_MODEL", ""),
+        "gemini-3.1-flash-image-preview",   # Nano Banana 2
+        "gemini-2.5-flash-image",            # Nano Banana
+        "gemini-3-pro-image-preview",        # Nano Banana Pro
+    ] if m]
+
+    GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+    last_err = "Sin modelos disponibles"
+
+    # Timeout 25s por petición — Railway corta a ~60s total, necesitamos margen
+    async with httpx.AsyncClient(timeout=25) as client:
+        for model_name in _model_names:
+            url = f"{GEMINI_BASE_URL}/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            for payload in _payloads:
+                try:
+                    r = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                except Exception as e:
+                    last_err = f"Timeout ({model_name}): {e}"
+                    break  # red fallida, pasar al siguiente modelo
+
+                if r.status_code == 404:
+                    last_err = f"Modelo no encontrado: {model_name}"
+                    break  # este modelo no existe, probar siguiente
+
+                if r.status_code == 429:
+                    # Cuota agotada — no tiene sentido probar otros modelos
+                    raise RuntimeError(
+                        "Cuota de Gemini agotada. Espera a que se reinicie tu límite gratuito "
+                        "(~24h) o activa billing en https://aistudio.google.com/apikey."
+                    )
+
+                if r.status_code == 200:
+                    try:
+                        data = r.json()
+                        parts = data["candidates"][0]["content"]["parts"]
+                    except Exception as e:
+                        last_err = f"JSON inválido ({model_name}): {e}"
+                        continue
+
+                    for part in parts:
+                        if "inlineData" in part:
+                            raw = base64.b64decode(part["inlineData"]["data"])
+                            if PIL_AVAILABLE:
+                                pil2 = Image.open(io.BytesIO(raw)).convert("RGB")
+                                out = io.BytesIO()
+                                pil2.save(out, format="JPEG", quality=92)
+                                return out.getvalue()
+                            return raw
+
+                    text_parts = [p.get("text", "") for p in parts if "text" in p]
+                    last_err = f"Sin imagen en respuesta ({model_name}): {' '.join(text_parts)[:150]}"
+                    continue
+
+                last_err = f"Error {r.status_code} ({model_name}): {r.text[:200]}"
+                continue
+
+    raise RuntimeError(last_err)
+
+
+from fastapi import Form as _Form
+
+@app.post("/images/clean")
+async def clean_images(
+    files: List[UploadFile] = File(...),
+    prompt: str = _Form(""),
+    # legacy field kept for backward compat
+    remove_furniture: str = _Form("false"),
+):
+    use_gemini = bool(prompt.strip()) and bool(GEMINI_API_KEY)
+
+    async def process_one(uf: UploadFile):
+        raw = await uf.read()
+        ct = uf.content_type or "image/jpeg"
+        try:
+            if use_gemini:
+                processed = await _process_with_gemini(raw, ct, prompt.strip())
+                return {
+                    "name": uf.filename,
+                    "cleaned_b64": base64.b64encode(processed).decode(),
+                    "content_type": "image/jpeg",
+                    "used_gemini": True,
+                    "error": None,
+                }
+            else:
+                loop = asyncio.get_event_loop()
+                processed = await loop.run_in_executor(
+                    _thread_pool, _process_image_sync, raw, ct
+                )
+                return {
+                    "name": uf.filename,
+                    "cleaned_b64": base64.b64encode(processed).decode(),
+                    "content_type": ct,
+                    "used_gemini": False,
+                    "error": None,
+                }
+        except Exception as exc:
+            return {
+                "name": uf.filename,
+                "cleaned_b64": None,
+                "content_type": ct,
+                "used_gemini": False,
+                "error": str(exc),
+            }
+
+    results = await asyncio.gather(*[process_one(f) for f in files])
+    return {"images": list(results)}
+
+
+# ─── FACEBOOK OAUTH ───────────────────────────────────────────────────────────
+
+@app.get("/facebook/callback")
+async def facebook_callback(code: str = Query(...), state: str = Query(None), redirect_uri: str = Query(None)):
+    """Intercambia el code de OAuth por un token de página de Facebook."""
+    redirect_uri = redirect_uri or (FRONTEND_URL + "/facebook/callback")
+    async with httpx.AsyncClient(timeout=15) as client:
+        # 1. Token de usuario (corta duración)
+        r = await client.get(
+            "https://graph.facebook.com/v21.0/oauth/access_token",
+            params={
+                "client_id": FB_APP_ID,
+                "client_secret": FB_APP_SECRET,
+                "redirect_uri": redirect_uri,
+                "code": code,
+            },
+        )
+        if r.status_code != 200:
+            return {"error": r.text}
+        short_token = r.json().get("access_token", "")
+
+        # 2. Token de larga duración
+        r2 = await client.get(
+            "https://graph.facebook.com/v21.0/oauth/access_token",
+            params={
+                "grant_type": "fb_exchange_token",
+                "client_id": FB_APP_ID,
+                "client_secret": FB_APP_SECRET,
+                "fb_exchange_token": short_token,
+            },
+        )
+        long_token = r2.json().get("access_token", short_token)
+
+        # 3. Lista de páginas administradas
+        r3 = await client.get(
+            "https://graph.facebook.com/v21.0/me/accounts",
+            params={"access_token": long_token},
+        )
+        pages = r3.json().get("data", [])
+
+    if not pages:
+        return {"error": "No se encontraron páginas administradas en esta cuenta de Facebook."}
+
+    # Usar la primera página
+    page = pages[0]
+    page_token = page.get("access_token", "")
+    page_id    = page.get("id", "")
+    page_name  = page.get("name", "")
+
+    # Devolver datos para que el frontend los guarde en Supabase
+    return {
+        "ok": True,
+        "page_id": page_id,
+        "page_name": page_name,
+        "page_token": page_token,
+    }
+
+
+class FbPublishRequest(BaseModel):
+    page_id: str
+    page_token: str
+    message: str
+    photo_urls: list[str] = []
+
+@app.post("/facebook/publish")
+async def facebook_publish(req: FbPublishRequest):
+    """Publica una propiedad en la página de Facebook."""
+    photo_ids = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Subir fotos como no publicadas
+        for url in req.photo_urls[:10]:
+            r = await client.post(
+                f"https://graph.facebook.com/v21.0/{req.page_id}/photos",
+                params={"access_token": req.page_token},
+                json={"url": url, "published": False},
+            )
+            if r.status_code == 200:
+                pid = r.json().get("id")
+                if pid:
+                    photo_ids.append({"media_fbid": pid})
+
+        # Crear el post
+        payload: dict = {
+            "message": req.message,
+            "access_token": req.page_token,
+        }
+        if photo_ids:
+            payload["attached_media"] = photo_ids
+
+        r_post = await client.post(
+            f"https://graph.facebook.com/v18.0/{req.page_id}/feed",
+            params={"access_token": req.page_token},
+            json=payload,
+        )
+
+    if r_post.status_code not in (200, 201):
+        raise HTTPException(status_code=502, detail=r_post.text)
+
+    return {"ok": True, "post_id": r_post.json().get("id")}

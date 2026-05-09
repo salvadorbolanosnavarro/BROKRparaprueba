@@ -1,296 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<link rel="icon" type="image/png" href="isotipo-broquer.png"/>
+<link rel="apple-touch-icon" href="isotipo-broquer.png"/>
+<link rel="stylesheet" href="brokr-theme.css"/>
+<style id="broquer-skin">
+  html,body{background:var(--paper)!important;color:var(--ink)!important;font-family:var(--font-sans)!important;letter-spacing:-0.01em}
+  *{font-family:var(--font-sans)!important}
+  h1,h2,h3,.title,.heading{font-family:var(--font-display)!important;letter-spacing:-0.02em!important;color:var(--ink)!important}
+  code,pre,.mono,kbd{font-family:var(--font-mono)!important}
+  /* Surfaces */
+  body, .screen, .panel, .container, .wrap, main { background:var(--paper)!important; color:var(--ink)!important; }
+  .card, .ui-card, .box, .module, .pf-card, .stat-pill, .module-card, .cat-module, .profile-section, .activity-item, .news-ticker-wrap, .tile, .section, section, article {
+    background:var(--bone)!important; border:1px solid var(--line)!important; border-radius:var(--r-lg)!important;
+    color:var(--ink)!important; box-shadow:0 1px 2px rgba(10,10,10,.03)!important;
+  }
+  /* Headers/topbars that were navy → ivory */
+  .home-header, .modules-header, .profile-header, .panel-topbar, header, .topbar, .nav-top, .app-header, .hdr, .navbar {
+    background:var(--paper)!important; color:var(--ink)!important; border-bottom:1px solid var(--line)!important;
+  }
+  .home-header *, .modules-header *, .profile-header *, .panel-topbar *, header *, .topbar *, .nav-top *, .app-header *, .hdr *, .navbar * { color:var(--ink)!important; }
+  /* Inputs */
+  input, select, textarea {
+    background:var(--bone)!important; border:1px solid var(--line-2)!important; color:var(--ink)!important;
+    border-radius:var(--r)!important; font-family:var(--font-sans)!important; font-size:14px!important; padding:10px 12px!important;
+    outline:none!important; transition:border-color .2s ease;
+  }
+  input:focus, select:focus, textarea:focus { border-color:var(--ink)!important; }
+  /* Buttons */
+  button, .btn, .ui-btn, .isr-calc-btn, .props-new-btn, .pe-save-btn, .prf-stripe-btn.primary, .pf-save-btn, .btn-pdf, .pe-toggle-slider {
+    font-family:var(--font-sans)!important; letter-spacing:-0.005em!important;
+  }
+  button:not([class]), .btn-primary, .ui-btn, .pf-save-btn, .pe-save-btn, .isr-calc-btn, .props-new-btn, .btn-pdf, .prf-stripe-btn.primary {
+    background:var(--ink)!important; color:var(--paper)!important;
+    border:none!important; border-radius:var(--r)!important;
+    padding:11px 18px!important; font-weight:600!important; cursor:pointer!important;
+    box-shadow:0 1px 2px rgba(10,10,10,.08)!important; font-size:14px!important;
+  }
+  button:not([class]):hover, .btn-primary:hover, .ui-btn:hover, .pf-save-btn:hover, .pe-save-btn:hover, .isr-calc-btn:hover { opacity:.92!important; }
+  /* Badges, chips */
+  .badge, .chip, .pill, .stat-pill .lbl, .res-tipo-lbl, .isr-badge {
+    background:var(--paper-2)!important; color:var(--ink-2)!important; border:1px solid var(--line)!important;
+    border-radius:var(--r-pill)!important; padding:3px 10px!important; font-size:11px!important; font-weight:500!important;
+  }
+  /* Accent text colors that were navy or teal */
+  [class*="navy"], [style*="color:#0f1829"], [style*="color: #0f1829"], [style*="color:#162035"] { color:var(--ink)!important; }
+  /* Links */
+  a { color:var(--ink)!important; text-decoration:none; }
+  a:hover { color:var(--forest)!important; }
+  /* Scrollbars */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-thumb { background:var(--line-2); border-radius:3px; }
+  /* Drop garish gradients on home-header */
+  .home-header::before, .home-header::after { display:none!important; }
+  /* Misc legacy */
+  .app-sidebar { background:var(--paper)!important; border-right:1px solid var(--line)!important; }
+  .proto-nav, .bottom-nav, .tabbar { background:var(--bone)!important; border-top:1px solid var(--line)!important; }
+  /* Force any greeting "name" or page title light text to be dark */
+  .greeting-text .hello, .greeting-text .name, .profile-name, .profile-sub, .panel-title, .modules-header h2 { color:var(--ink)!important; }
+  /* Avatar-style circles that were translucent on navy → bone */
+  .home-avatar, .profile-avatar, .pr-icon, .act-icon, .scw-avatar, .notif-bell, .stat-pill {
+    background:var(--bone)!important; border:1px solid var(--line)!important; color:var(--ink)!important;
+  }
+</style>
+
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>Ficha Manual — BROKR®</title>
+<link rel="icon" type="image/png" href="isotipo-broquer.png">
+<link rel="apple-touch-icon" href="isotipo-broquer.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Broquer — Ficha Manual</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet"/>
-
 <style>
-/* ═══════════════════════════════════════
-   BROKR® DESIGN SYSTEM — FICHA MANUAL
-   Paleta: Blanco · Navy · Teal
-   Tipografía: Poppins
-═══════════════════════════════════════ */
-:root {
-  --navy:       #0f1829;
-  --navy-mid:   #162035;
-  --navy-light: #1e2d47;
-  --teal:       #2a9db5;
-  --teal-dark:  #1a7a8f;
-  --teal-bg:    rgba(42,157,181,0.10);
-  --teal-border:rgba(42,157,181,0.25);
-  --white:      #ffffff;
-  --bg:         #f0f2f7;
-  --card:       #ffffff;
-  --border:     rgba(0,0,0,0.08);
-  --border2:    rgba(0,0,0,0.05);
-  --txt:        #1a2035;
-  --txt-soft:   #5a6070;
-  --txt-muted:  #9aa0ad;
-  --font:       'Poppins', sans-serif;
-  --shadow:     0 2px 16px rgba(0,0,0,0.07);
-  --shadow-sm:  0 1px 6px rgba(0,0,0,0.05);
-  --r:          18px;
-  --r2:         14px;
-  --r3:         10px;
-  --touch:      48px;
-  /* Legacy vars for ficha pages */
-  --navy2: #1a2744;
-  --gold: #c9a84c;
-  --gray: #f5f6f8;
-  --gray2: #e8ecf2;
-  --mut: #6b7a99;
-  --teal2: #1f8ba0;
-  --teal3: rgba(42,157,181,0.10);
+:root{
+  --navy:#0f1829;--navy2:#1e2d47;--teal:#0f1829;--teal-dark:#162035;
+  --teal-bg:rgba(15,24,41,0.06);--teal-border:rgba(15,24,41,0.15);
+  --white:#ffffff;--gray:#f5f6f8;--gray2:#e8eaee;
+  --txt:#0f0f0f;--mut:#5a6070;--mut2:#9aa0ad;--r:14px;
+  --shadow:0 2px 12px rgba(0,0,0,0.07);--font:'Poppins',sans-serif;
 }
-
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-html, body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--txt);
-  font-size: 15px;
-  min-height: 100%;
-  overflow-y: auto;
-}
-
-/* ── TOPBAR ── */
-.topbar {
-  background: var(--navy);
-  padding: 0 20px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-.topbar-back {
-  width: 38px; height: 38px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.1);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: white;
-  font-size: 18px;
-  text-decoration: none;
-  flex-shrink: 0;
-  transition: background 0.15s;
-}
-.topbar-back:active { background: rgba(255,255,255,0.15); }
-.topbar-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: white;
-  flex: 1;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Poppins',sans-serif;background:#f0f2f7;color:var(--txt)}
 
 /* ── APP UI ── */
-#app-ui {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 20px 16px 140px;
-}
+#app-ui{max-width:680px;margin:0 auto;padding:24px 20px 60px}
 
-/* ── CARDS ── */
-.ui-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 18px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.ui-card h3 {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .8px;
-  color: var(--teal);
-  margin-bottom: 14px;
-}
 
-/* ── FORM ROWS ── */
-.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.frow.three { grid-template-columns: 1fr 1fr 1fr; }
-.frow.single { grid-template-columns: 1fr; }
-.frow:last-child { margin-bottom: 0; }
-@media (max-width: 480px) {
-  .frow, .frow.three { grid-template-columns: 1fr; }
+.ui-card{background:var(--white);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.06);margin-bottom:12px}
+.ui-card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--navy);margin-bottom:12px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.frow.three{grid-template-columns:1fr 1fr 1fr}
+.frow.single{grid-template-columns:1fr}
+.f{display:flex;flex-direction:column;gap:4px}
+.f label{font-size:11px;font-weight:600;color:var(--mut)}
+.f input,.f select,.f textarea{
+  padding:9px 12px;border:1.5px solid var(--gray2);border-radius:8px;
+  font-size:13px;font-family:'Poppins',sans-serif;color:var(--txt);
+  outline:none;transition:border-color .15s;background:var(--gray);
 }
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--teal);background:white;box-shadow:0 0 0 3px var(--teal-bg);}
+.f textarea{resize:vertical;min-height:80px}
 
-/* ── FIELDS ── */
-.f { display: flex; flex-direction: column; gap: 5px; }
-.f label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--txt-muted);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.f input, .f select, .f textarea {
-  width: 100%;
-  min-height: var(--touch);
-  padding: 10px 14px;
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r3);
-  color: var(--txt);
-  font-size: 15px;
-  font-family: var(--font);
-  font-weight: 500;
-  outline: none;
-  transition: border-color .2s, background .2s;
-  appearance: none;
-}
-.f input:focus, .f select:focus, .f textarea:focus {
-  border-color: var(--teal);
-  background: white;
-  box-shadow: 0 0 0 3px var(--teal-bg);
-}
-.f input::placeholder { color: var(--txt-muted); font-weight: 400; }
-.f textarea { resize: vertical; min-height: 80px; }
+/* price row */
+#precio-renta-row{display:none}
 
-/* ── FOTO UPLOAD ── */
-.foto-upload-area {
-  border: 2px dashed var(--border);
-  border-radius: var(--r2);
-  padding: 22px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-  background: var(--bg);
+/* foto upload */
+.foto-upload-area{
+  border:2px dashed var(--gray2);border-radius:10px;
+  padding:20px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;
+  background:var(--gray);
 }
-.foto-upload-area:hover { border-color: var(--teal); background: rgba(42,157,181,0.04); }
-.foto-upload-area p { font-size: 13px; color: var(--txt-muted); margin-top: 8px; font-weight: 400; }
-.foto-upload-area svg { opacity: .35; }
+.foto-upload-area:hover{border-color:var(--teal);background:#f0fbfd}
+.foto-upload-area p{font-size:13px;color:var(--mut);margin-top:8px}
+.foto-upload-area svg{opacity:.4}
+#photos-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;
+}
+.photo-thumb{
+  position:relative;border-radius:8px;overflow:hidden;
+  aspect-ratio:1;cursor:grab;border:2px solid transparent;
+  transition:border-color .15s;
+}
+.photo-thumb.drag-over{border-color:var(--teal)}
+.photo-thumb.dragging{opacity:.5}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-main-badge{
+  position:absolute;bottom:4px;left:4px;
+  background:var(--teal);color:white;font-size:9px;font-weight:700;
+  padding:2px 7px;border-radius:10px;letter-spacing:.3px;
+}
+.photo-del{
+  position:absolute;top:4px;right:4px;
+  background:rgba(0,0,0,.55);color:white;border:none;
+  width:20px;height:20px;border-radius:50%;font-size:13px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+#drag-hint{
+  display:none;font-size:11px;color:var(--mut);text-align:center;
+  margin-top:6px;
+}
+#drag-hint.show{display:block}
 
-#photos-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+/* AI desc button */
+.ai-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 14px;
+  background:linear-gradient(135deg,var(--teal),var(--teal-dark));
+  color:white;border:none;border-radius:8px;font-size:12px;
+  font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;
+  margin-top:8px;
 }
-@media (max-width: 480px) {
-  #photos-grid { grid-template-columns: repeat(3, 1fr); }
-}
+.ai-btn:hover{opacity:.9}
+.ai-hint{font-size:11px;color:var(--mut);margin-top:6px}
 
-.photo-thumb {
-  position: relative;
-  border-radius: var(--r3);
-  overflow: hidden;
-  aspect-ratio: 1;
-  cursor: grab;
-  border: 2px solid transparent;
-  transition: border-color .15s;
+/* action buttons */
+.actions{display:flex;gap:10px;margin-top:4px}
+.ui-btn{
+  display:flex;align-items:center;gap:7px;padding:12px 24px;
+  background:var(--navy);color:white;border:none;border-radius:10px;
+  font-size:14px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;
+  transition:opacity .15s;
 }
-.photo-thumb.drag-over { border-color: var(--teal); }
-.photo-thumb.dragging { opacity: .5; }
-.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.photo-main-badge {
-  position: absolute;
-  bottom: 4px; left: 4px;
-  background: var(--teal);
-  color: white;
-  font-size: 9px; font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 10px;
-  letter-spacing: .3px;
-}
-.photo-del {
-  position: absolute;
-  top: 4px; right: 4px;
-  background: rgba(0,0,0,.55);
-  color: white;
-  border: none;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  line-height: 1;
-}
+.ui-btn:hover{opacity:.9}
+.ui-btn.teal{background:var(--teal)}
+.ui-btn.outline{background:transparent;border:1.5px solid var(--gray2);color:var(--navy)}
+.ui-btn.outline:hover{background:var(--gray)}
 
-#drag-hint {
-  display: none;
-  font-size: 11px;
-  color: var(--txt-muted);
-  text-align: center;
-  margin-top: 6px;
+#print-bar{
+  display:none;background:var(--white);border-radius:var(--r);
+  padding:14px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06);
+  margin-bottom:14px;flex-direction:row;align-items:center;
+  justify-content:space-between;gap:12px;
 }
-#drag-hint.show { display: block; }
-
-/* Price renta row */
-#precio-renta-row { display: none; }
-
-/* ── AI BUTTON ── */
-.ai-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: var(--navy);
-  color: white;
-  border: none;
-  border-radius: var(--r3);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: var(--font);
-  margin-top: 8px;
-  transition: opacity .15s;
-}
-.ai-btn:hover { opacity: .88; }
-.ai-hint {
-  font-size: 11px;
-  color: var(--txt-muted);
-  margin-top: 6px;
-  font-weight: 400;
-}
-
-/* ── ACTION BUTTONS ── */
-.actions { display: flex; gap: 10px; margin-top: 4px; }
-.ui-btn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 14px 24px;
-  background: var(--navy);
-  color: white;
-  border: none;
-  border-radius: var(--r2);
-  font-size: 15px;
-  font-weight: 700;
-  font-family: var(--font);
-  cursor: pointer;
-  transition: opacity .15s, transform .1s;
-  letter-spacing: .2px;
-}
-.ui-btn:hover { opacity: .88; }
-.ui-btn:active { transform: scale(0.98); }
-.ui-btn:disabled { opacity: .45; cursor: not-allowed; }
-.ui-btn.teal { background: var(--teal); }
-
-#print-bar {
-  display: none;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: var(--r2);
-  padding: 14px 18px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 12px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-#print-bar.show { display: flex; }
-#print-bar span { font-size: 13px; color: var(--txt-soft); font-weight: 500; }
+#print-bar.show{display:flex}
+#print-bar span{font-size:13px;color:var(--mut)}
 
 /* ── FICHA PAGES ── */
 #ficha{display:none;margin-bottom:40px}
@@ -310,7 +193,7 @@ html, body {
 }
 .cover-info{padding:18px 24px 14px;border-bottom:1px solid var(--gray2)}
 .cover-badge{
-  display:inline-block;background:var(--gold);color:white;
+  display:inline-block;background:var(--teal);color:white;
   font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
   padding:4px 10px;border-radius:20px;margin-bottom:10px;
 }
@@ -356,7 +239,7 @@ html, body {
   display:flex;align-items:center;justify-content:space-between;
   padding:0 20px;flex-shrink:0;
 }
-.ft-logo img{height:16px;filter:brightness(10)}
+.ft-logo img{height:32px;width:auto}
 .ft-txt{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:.5px}
 
 /* ── PRINT ── */
@@ -388,161 +271,20 @@ html, body {
   .cover-hero,.cover-hero-placeholder{height:55vw}
   .cover-specs{grid-template-columns:repeat(2,1fr)}
 }
-
-/* ── SHAARK FLOTANTE ── */
-.shaark-fab {
-  position: fixed;
-  bottom: 24px;
-  right: 20px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-.shaark-btn {
-  width: 58px; height: 58px;
-  border-radius: 20px;
-  background: var(--navy);
-  border: 2px solid rgba(42,157,181,0.4);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
-  cursor: pointer;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(42,157,181,0.2);
-  transition: transform 0.2s, box-shadow 0.2s;
-  position: relative;
-}
-.shaark-btn:active { transform: scale(0.93); }
-.shaark-btn.open { background: var(--teal); border-color: var(--teal); }
-.shaark-pulse {
-  position: absolute;
-  top: -2px; right: -2px;
-  width: 12px; height: 12px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid var(--bg);
-}
-.shaark-window {
-  width: min(300px, calc(100vw - 40px));
-  background: var(--navy);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-  border: 1px solid rgba(42,157,181,0.2);
-  display: none;
-  flex-direction: column;
-  max-height: min(420px, calc(100vh - 160px));
-}
-.shaark-window.visible { display: flex; }
-.sw-header {
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  flex-shrink: 0;
-}
-.sw-avatar {
-  width: 34px; height: 34px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-}
-.sw-name { font-size: 14px; font-weight: 700; color: white; }
-.sw-status { font-size: 11px; color: var(--teal); font-weight: 500; }
-.sw-close {
-  margin-left: auto;
-  width: 28px; height: 28px;
-  border-radius: 9px;
-  background: rgba(255,255,255,0.07);
-  border: none;
-  color: rgba(255,255,255,0.5);
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.sw-msgs {
-  flex: 1; overflow-y: auto; padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.sw-msgs::-webkit-scrollbar { display: none; }
-.sw-bubble {
-  max-width: 85%; padding: 9px 12px;
-  border-radius: 14px; font-size: 13px; line-height: 1.45;
-}
-.sw-bubble.bot {
-  background: rgba(255,255,255,0.07);
-  color: rgba(255,255,255,0.88);
-  border-bottom-left-radius: 4px;
-  align-self: flex-start;
-}
-.sw-bubble.user {
-  background: var(--teal); color: white;
-  border-bottom-right-radius: 4px;
-  align-self: flex-end;
-}
-.sw-chips {
-  display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 8px;
-}
-.sw-chip {
-  background: rgba(42,157,181,0.15);
-  border: 1px solid rgba(42,157,181,0.3);
-  border-radius: 16px; padding: 6px 11px;
-  font-size: 11px; color: var(--teal); cursor: pointer;
-  font-weight: 500; font-family: var(--font);
-}
-.sw-input-row {
-  display: flex; gap: 8px; padding: 10px 12px 12px;
-  border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
-}
-.sw-input {
-  flex: 1; background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px; padding: 9px 13px;
-  font-size: 13px; color: white; font-family: var(--font); outline: none;
-}
-.sw-input::placeholder { color: rgba(255,255,255,0.28); }
-.sw-send {
-  width: 38px; height: 38px; border-radius: 12px;
-  background: var(--teal); border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; color: white; flex-shrink: 0;
-}
-
-/* ── ANIMACIONES ── */
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(12px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-.anim { animation: fadeUp 0.35s ease both; }
-.d1 { animation-delay: 0.06s; }
-.d2 { animation-delay: 0.13s; }
-.d3 { animation-delay: 0.20s; }
-.d4 { animation-delay: 0.27s; }
-.d5 { animation-delay: 0.34s; }
-.d6 { animation-delay: 0.41s; }
 </style>
 </head>
 <body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <a class="topbar-back" href="index.html">&#8592;</a>
-  <span class="topbar-title">Ficha Técnica Manual</span>
-</div>
-
-<!-- APP UI -->
+<!-- ═══ APP UI ═══════════════════════════════ -->
 <div id="app-ui">
 
   <!-- FOTOS -->
-  <div class="ui-card anim d1">
+  <div class="ui-card">
     <h3>📷 Fotos</h3>
     <div class="foto-upload-area" onclick="document.getElementById('foto-input').click()">
       <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
       </svg>
-      <p>Toca para agregar fotos</p>
+      <p>Toca para agregar fotos desde tu celular o computadora</p>
     </div>
     <input type="file" id="foto-input" accept="image/*" multiple style="display:none" onchange="addPhotos(this)"/>
     <div id="photos-grid"></div>
@@ -550,7 +292,7 @@ html, body {
   </div>
 
   <!-- DATOS BÁSICOS -->
-  <div class="ui-card anim d2">
+  <div class="ui-card">
     <h3>🏠 Datos básicos</h3>
     <div class="frow">
       <div class="f">
@@ -560,8 +302,6 @@ html, body {
           <option value="Casa">Casa</option>
           <option value="Departamento">Departamento</option>
           <option value="Terreno">Terreno</option>
-          <option value="Casa comercial">Casa comercial</option>
-          <option value="Edificio">Edificio</option>
           <option value="Local comercial">Local comercial</option>
           <option value="Oficina">Oficina</option>
           <option value="Bodega">Bodega</option>
@@ -590,7 +330,7 @@ html, body {
   </div>
 
   <!-- UBICACIÓN -->
-  <div class="ui-card anim d3">
+  <div class="ui-card">
     <h3>📍 Ubicación</h3>
     <div class="frow">
       <div class="f">
@@ -611,7 +351,7 @@ html, body {
   </div>
 
   <!-- CARACTERÍSTICAS -->
-  <div class="ui-card anim d3">
+  <div class="ui-card">
     <h3>📐 Características</h3>
     <div class="frow three">
       <div class="f"><label>Recámaras</label><input type="number" id="d-rec" placeholder="3" min="0"/></div>
@@ -630,7 +370,7 @@ html, body {
   </div>
 
   <!-- DESCRIPCIÓN -->
-  <div class="ui-card anim d4">
+  <div class="ui-card">
     <h3>📝 Descripción</h3>
     <div class="f">
       <label>Descripción comercial</label>
@@ -643,7 +383,7 @@ html, body {
   </div>
 
   <!-- AMENIDADES -->
-  <div class="ui-card anim d4">
+  <div class="ui-card">
     <h3>✅ Amenidades</h3>
     <div class="f">
       <label>Lista separada por comas</label>
@@ -651,11 +391,11 @@ html, body {
     </div>
   </div>
 
-  <!-- ACCIONES -->
-  <div class="ui-card anim d5">
+  <!-- ACTIONS -->
+  <div class="ui-card">
     <div class="actions">
       <button class="ui-btn" onclick="generarFicha()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
         </svg>
         Generar ficha
@@ -667,46 +407,16 @@ html, body {
     <span id="print-bar-txt">Ficha lista</span>
     <button class="ui-btn teal" id="pdf-btn" onclick="abrirPDF()">
       <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
-        <path stroke-linecap="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
       </svg>
       Ver / Compartir PDF
     </button>
   </div>
-
-</div><!-- /app-ui -->
-
-<!-- FICHA -->
-<div id="ficha">
-  <div id="ficha-pages"></div>
 </div>
 
-<!-- SHAARK FLOTANTE -->
-<div class="shaark-fab">
-  <div class="shaark-window" id="shaark-window">
-    <div class="sw-header">
-      <div class="sw-avatar">🦈</div>
-      <div>
-        <div class="sw-name">Shaark</div>
-        <div class="sw-status">● En línea</div>
-      </div>
-      <button class="sw-close" onclick="toggleShaark()">✕</button>
-    </div>
-    <div class="sw-msgs" id="sw-msgs">
-      <div class="sw-bubble bot">Hola 👋 Puedo ayudarte con la descripción de la propiedad o resolver dudas mientras llenas la ficha.</div>
-    </div>
-    <div class="sw-chips" id="sw-chips">
-      <div class="sw-chip" onclick="swChip('¿Cómo hago una buena descripción?')">Tips de descripción</div>
-      <div class="sw-chip" onclick="swChip('¿Qué amenidades agregar?')">Amenidades comunes</div>
-    </div>
-    <div class="sw-input-row">
-      <input class="sw-input" id="sw-input" type="text" placeholder="Pregunta algo..." onkeydown="swKey(event)"/>
-      <button class="sw-send" onclick="swSend()">➤</button>
-    </div>
-  </div>
-  <div class="shaark-btn" id="shaark-btn" onclick="toggleShaark()">
-    🦈
-    <div class="shaark-pulse"></div>
-  </div>
+<!-- ═══ FICHA ════════════════════════════════ -->
+<div id="ficha">
+  <div id="ficha-pages"></div>
 </div>
 
 <script>
@@ -849,6 +559,51 @@ function initDragDrop(){
 }
 document.addEventListener('DOMContentLoaded', initDragDrop);
 
+// ── Preload images from Editor de imágenes ────────────────────────────────────
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'brokr-preload-images') return;
+  const images = e.data.images;
+  if (!images || !images.length) return;
+  showPreloadedImages(images);
+});
+
+function showPreloadedImages(images) {
+  // Add images to the fotos array
+  images.forEach(img => {
+    fotos.push({ url: img.url, name: img.name });
+  });
+  renderThumbsWithSelection();
+
+  // Show banner
+  let banner = document.getElementById('preload-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'preload-banner';
+    banner.style.cssText = 'background:rgba(15,24,41,.06);border:1.5px solid rgba(15,24,41,.15);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:inherit';
+    banner.innerHTML = `
+      <span style="font-size:13px;font-weight:600;color:#1a7a8f">
+        ${images.length} foto${images.length !== 1 ? 's' : ''} cargada${images.length !== 1 ? 's' : ''} desde el Editor de imágenes
+      </span>
+      <button onclick="dismissPreloadBanner()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#5a6070;line-height:1;padding:0 4px">×</button>
+    `;
+    const photosCard = document.querySelector('.ui-card');
+    if (photosCard) photosCard.prepend(banner);
+  }
+
+  // Scroll to top so user sees the photos
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function dismissPreloadBanner() {
+  const b = document.getElementById('preload-banner');
+  if (b) b.remove();
+}
+
+// Enhanced renderThumbs — when coming from Editor, show checkmark-style selection
+function renderThumbsWithSelection() {
+  renderThumbs(); // use existing function — photos appear ready to reorder/delete
+}
+
 
 function deletePhoto(i){
   fotos.splice(i,1);
@@ -871,7 +626,7 @@ async function generarDescripcion(){
   if(!desc){ alert('ERROR: campo descripción no encontrado'); return; }
 
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Generando...'; }
-  if(hint){ hint.textContent = 'Conectando con IA...'; hint.style.color = 'var(--mut)'; }
+  if(hint){ hint.textContent = desc.value.trim() ? 'Mejorando tu texto con IA...' : 'Conectando con IA...'; hint.style.color = 'var(--mut)'; }
 
   const datos = getDatos();
   const lineas = [
@@ -887,14 +642,17 @@ async function generarDescripcion(){
     datos.amen    ? '- Amenidades: '     + datos.amen    : '',
   ].filter(Boolean).join('\n');
 
-  const prompt = 'Eres un agente inmobiliario experto en Morelia, Michoacán. Redacta una descripción comercial atractiva y profesional para esta propiedad. Máximo 180 palabras. Sin emojis. Sin mencionar precio.\n\nDatos:\n' + lineas + '\n\nRedacta solo la descripción:';
+  const textoUsuario = desc.value.trim();
+  const prompt = textoUsuario
+    ? 'Eres un agente inmobiliario experto en Morelia, Michoacán. El usuario ha redactado la siguiente descripción para una propiedad. Mejórala: hazla más atractiva, profesional y fluida, conservando fielmente las ideas y detalles que el usuario mencionó. Máximo 180 palabras. Sin emojis. Sin mencionar precio.\n\nDatos de la propiedad:\n' + lineas + '\n\nTexto original del usuario:\n' + textoUsuario + '\n\nRedacta solo la descripción mejorada:'
+    : 'Eres un agente inmobiliario experto en Morelia, Michoacán. Redacta una descripción comercial atractiva y profesional para esta propiedad. Máximo 180 palabras. Sin emojis. Sin mencionar precio.\n\nDatos:\n' + lineas + '\n\nRedacta solo la descripción:';
 
   try{
-    const r = await fetch(API + '/chat-claude', {
+    const r = await fetch(API + '/chat', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        prompt: prompt,
+        messages: [{role:'user', content: prompt}],
         max_tokens: 400,
         temperature: 0.7
       })
@@ -923,11 +681,8 @@ async function generarDescripcion(){
 // ── FOOTER ──────────────────────────────────
 function footer(){
   return `<div class="ficha-footer">
-    <div class="ft-logo" style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:9px;color:rgba(255,255,255,.6);font-weight:500;letter-spacing:.3px">Powered by</span>
-      <img src="logotipo-brokr.svg" alt="Shaark"/>
-    </div>
-    <div class="ft-txt">BROKR.MX</div>
+    <div class="ft-logo"><img src="logotipo-broquer.png" alt="Broquer" style="height: 32px; width: auto;"/></div>
+    <div class="ft-txt">Broquer.mx</div>
   </div>`;
 }
 
@@ -1056,29 +811,9 @@ function getDatos(){
 
 
 let _lastPdfToken = null;
-let _lastPdfFilename = 'Ficha_Brokr.pdf';
-
-function _descargarBlob(url, filename){
-  // PWA-compatible download: fetch as blob then trigger anchor download
-  fetch(url)
-    .then(r => r.blob())
-    .then(blob => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename || 'Ficha_Brokr.pdf';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-    })
-    .catch(() => {
-      // fallback: open in new tab if blob fails (desktop)
-      window.open(url, '_blank');
-    });
-}
-
 function abrirPDF(){
   if(!_lastPdfToken){ alert('Genera primero la ficha.'); return; }
-  _descargarBlob(API + '/ficha-pdf/' + _lastPdfToken, _lastPdfFilename);
+  window.open(API + '/ficha-pdf/' + _lastPdfToken, '_blank');
 }
 async function generarFicha(){
   const d = getDatos();
@@ -1124,10 +859,11 @@ async function generarFicha(){
     });
     if(!res.ok) throw new Error('Error servidor: ' + res.status);
     const data = await res.json();
+    const pdfUrl = API + '/ficha-pdf/' + data.token;
     _lastPdfToken = data.token;
-    _lastPdfFilename = data.filename || 'Ficha_Brokr.pdf';
+    window.open(pdfUrl, '_blank');
     g('print-bar').classList.add('show');
-    document.getElementById('print-bar-txt').textContent = '✓ Ficha lista — presiona Descargar para guardar';
+    document.getElementById('print-bar-txt').textContent = '✓ Ficha lista — comparte desde el visor';
   } catch(e){
     alert('Error generando ficha: ' + e.message);
   } finally{
@@ -1136,79 +872,42 @@ async function generarFicha(){
   }
 }
 
-/* ── SHAARK FLOTANTE ── */
-let shaarkOpen = false;
+// ══ SHAARK — llenar ficha manual vía postMessage ══
+window.addEventListener('message', function(e) {
+  const d = e.data;
+  if (!d || d.tipo !== 'crear_ficha_manual') return;
 
-function toggleShaark() {
-  shaarkOpen = !shaarkOpen;
-  const win = document.getElementById('shaark-window');
-  const btn = document.getElementById('shaark-btn');
-  if (shaarkOpen) {
-    win.classList.add('visible');
-    btn.classList.add('open');
-    setTimeout(()=>{ const m=document.getElementById('sw-msgs'); if(m) m.scrollTop=m.scrollHeight; },50);
-  } else {
-    win.classList.remove('visible');
-    btn.classList.remove('open');
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+
+  if (d.tipo_inmueble) {
+    const el = document.getElementById('d-tipo');
+    if (el) {
+      // Match option value case-insensitively
+      const opt = Array.from(el.options).find(o => o.value.toLowerCase() === String(d.tipo_inmueble).toLowerCase());
+      if (opt) el.value = opt.value;
+    }
   }
-}
-
-function swSend() {
-  const input = document.getElementById('sw-input');
-  const text = (input.value||'').trim();
-  if (!text) return;
-  swAddBubble(text, 'user');
-  input.value = '';
-  document.getElementById('sw-chips') && (document.getElementById('sw-chips').style.display = 'none');
-  setTimeout(() => swFetch(text), 600);
-}
-
-function swKey(e) { if (e.key==='Enter') swSend(); }
-
-function swChip(text) {
-  swAddBubble(text, 'user');
-  document.getElementById('sw-chips') && (document.getElementById('sw-chips').style.display = 'none');
-  setTimeout(() => swFetch(text), 600);
-}
-
-function swAddBubble(text, type) {
-  const msgs = document.getElementById('sw-msgs');
-  const div = document.createElement('div');
-  div.className = 'sw-bubble ' + type;
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-async function swFetch(text) {
-  const typing = document.createElement('div');
-  typing.className = 'sw-bubble bot';
-  typing.textContent = '...';
-  typing.id = 'sw-typing';
-  document.getElementById('sw-msgs').appendChild(typing);
-  document.getElementById('sw-msgs').scrollTop = document.getElementById('sw-msgs').scrollHeight;
-  try {
-    const r = await fetch(API + '/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', max_tokens: 200, temperature: 0.6,
-        messages: [
-          {role:'system', content:'Eres Shaark, asistente de BROKR® para agentes inmobiliarios en Morelia. Responde en español, breve y práctico. Máximo 2-3 oraciones.'},
-          {role:'user', content: text}
-        ]
-      })
-    });
-    const data = await r.json();
-    const reply = data.choices?.[0]?.message?.content || 'No pude obtener respuesta.';
-    const t = document.getElementById('sw-typing');
-    if (t) t.textContent = reply;
-  } catch(e) {
-    const t = document.getElementById('sw-typing');
-    if (t) t.textContent = 'Error de conexión.';
+  if (d.operacion) {
+    const el = document.getElementById('d-op');
+    if (el) {
+      const opt = Array.from(el.options).find(o => o.value.toLowerCase() === String(d.operacion).toLowerCase());
+      if (opt) { el.value = opt.value; if (typeof onOpChange === 'function') onOpChange(); }
+    }
   }
-  document.getElementById('sw-msgs').scrollTop = document.getElementById('sw-msgs').scrollHeight;
-}
+  if (d.precio) {
+    const el = document.getElementById('d-precio');
+    if (el) { el.value = Number(d.precio).toLocaleString('es-MX'); }
+  }
+  set('d-colonia', d.colonia);
+  set('d-ciudad',  d.ciudad);
+  set('d-dir',     d.dir);
+  if (d.recamaras !== undefined)       set('d-rec',  d.recamaras);
+  if (d.banos !== undefined)           set('d-ban',  d.banos);
+  if (d.m2_construccion !== undefined) set('d-m2c',  d.m2_construccion);
+  if (d.m2_terreno !== undefined)      set('d-m2t',  d.m2_terreno);
+  if (d.estacionamientos !== undefined)set('d-est',  d.estacionamientos);
+  if (d.descripcion) set('d-desc', d.descripcion);
+});
 </script>
 </body>
 </html>

@@ -1,0 +1,149 @@
+/* ===========================================================
+   Broquer — sistema de diseño (versión alterna)
+   Lenguaje visual de la app FIFA WC 2026, colores originales.
+   Acento azul #3538D6 · nav activo negro · tipografía Hanken.
+   =========================================================== */
+:root{
+  --acc:#3538D6;
+  --ink:#16161A;
+  --muted:#6F6F76;
+  --muted2:#9A9AA0;
+  --line:#E8E8EB;
+  --card:#FFFFFF;
+  --pg:#F1F2F4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#DBDCDE;font-family:'Hanken Grotesk',-apple-system,system-ui,sans-serif;color:var(--ink)}
+a{color:inherit;text-decoration:none}
+.ic{display:inline-block;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--pg);position:relative;padding-bottom:98px}
+
+/* ── Header ── */
+.hd{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+.cir{width:44px;height:44px;border-radius:50%;background:#ECECEF;display:flex;align-items:center;justify-content:center;color:var(--ink);border:none;cursor:pointer}
+.wm{font-size:23px;font-weight:800;letter-spacing:-.035em;color:var(--ink)}
+.hdr{display:flex;gap:10px}
+
+/* ── Bottom nav ── */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:20;display:flex;justify-content:space-around;align-items:flex-end;padding:11px 6px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--card)}
+.nv{display:flex;flex-direction:column;align-items:center;gap:4px;color:#A6A6AC}
+.nv span{font-size:11.5px;font-weight:600}
+.nv.on{color:var(--ink)}
+.nv.on span{font-weight:700}
+
+/* ── Layout / tipografía ── */
+.pg{padding:18px 16px 0}
+.htitle{font-size:30px;font-weight:800;letter-spacing:-.03em;margin:8px 0 0;line-height:1.05}
+.hsub{font-size:15px;color:var(--muted);font-weight:500;margin:8px 0 0}
+.sec{display:flex;justify-content:space-between;align-items:baseline;padding:22px 2px 0}
+.sec h2{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:0}
+.sec a{font-size:15px;color:var(--acc);font-weight:700}
+
+/* ── Botones ── */
+.pill{display:block;text-align:center;border:1.6px solid var(--ink);border-radius:99px;padding:13px;font-size:15px;font-weight:700;color:var(--ink);background:none;width:100%;cursor:pointer;font-family:inherit}
+.pill-fill{display:block;text-align:center;border:none;border-radius:99px;padding:15px;font-size:16px;font-weight:700;color:#fff;background:var(--acc);width:100%;cursor:pointer;font-family:inherit}
+
+/* ── Inputs ── */
+.field{display:block;margin-top:14px}
+.field .lab{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:7px;display:block}
+.input{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;font-size:16px;font-weight:600;font-family:inherit;color:var(--ink);background:var(--card);outline:none}
+.input::placeholder{color:var(--muted2);font-weight:500}
+.input:focus{border-color:var(--acc)}
+
+/* ── Card base ── */
+.card{background:var(--card);border-radius:20px}
+
+/* ── Alerta ── */
+.alert{display:flex;align-items:center;gap:14px;padding:20px 18px;margin-top:6px}
+.alert .ahx{color:var(--ink);flex-shrink:0}
+.alert .atx{flex:1}
+.alert .att{font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.alert .asb{font-size:14px;color:var(--muted);line-height:1.35;margin-top:4px;font-weight:500}
+.alert .acv{color:var(--muted2);flex-shrink:0}
+
+/* ── Promo (cuadro + banda) ── */
+.tik{display:flex;overflow:hidden;margin-top:18px}
+.tik .sq{width:128px;flex-shrink:0;background:var(--acc);position:relative;display:flex;align-items:center;justify-content:center}
+.tik .sq .ic{color:#fff}
+.tik .band{position:absolute;left:0;right:0;bottom:0;height:30px;display:flex}
+.tik .band b{flex:1}
+.tik .rt{flex:1;padding:18px 18px 20px}
+.tik .q{font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.2}
+
+/* ── Cita / match ── */
+.carwrap{position:relative;margin-top:18px;padding:0 12px}
+.sliv{position:absolute;top:14px;bottom:14px;width:12px;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.match{background:var(--card);border-radius:20px;border:1px solid #ECECEF;padding:16px 16px 4px}
+.match .mdate{font-size:14px;color:var(--muted);font-weight:500}
+.match .mphase{font-size:14px;color:var(--muted);text-align:center;font-weight:500;margin-top:2px}
+.vs{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 6px 16px}
+.team{display:flex;flex-direction:column;align-items:center;gap:8px;width:80px}
+.team .ab{font-size:15px;font-weight:800;letter-spacing:.01em}
+.time{font-size:27px;font-weight:800;letter-spacing:-.02em;align-self:center;margin-top:8px}
+.ava{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.mloc{display:flex;align-items:center;justify-content:center;gap:7px;border-top:1px solid #ECECEF;padding:13px 0;font-size:15px;font-weight:700}
+.mloc .ic{color:var(--acc)}
+.dots{display:flex;justify-content:center;gap:7px;padding:16px 0 4px}
+.dots b{width:7px;height:7px;border-radius:50%;background:#C9C9CE}
+.dots b.on{background:var(--acc);width:8px;height:8px}
+
+/* ── Card destacada oscura ── */
+.ev{background:#0D0D0E;border-radius:18px;overflow:hidden;margin-top:14px;position:relative;padding:16px 16px 18px}
+.ev .top{position:absolute;top:0;left:0;right:0;height:5px;display:flex}
+.ev .top b{flex:1}
+.ev .rb{position:absolute;top:0;right:0;bottom:0;width:6px;background:#7C3AED}
+.ev .row1{display:flex;justify-content:space-between;align-items:flex-start}
+.ev .live{background:#fff;color:var(--ink);font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px}
+.ev .hrt{color:#fff}
+.ev .big{font-family:'Anton',sans-serif;color:#fff;font-size:44px;text-align:center;line-height:1;margin:8px 0 8px;letter-spacing:.01em}
+.ev .date{color:#C2F03A;font-size:12px;font-weight:700;text-align:center;letter-spacing:.02em}
+.ev .subs{display:flex;gap:10px;margin-top:14px}
+.ev .sub{flex:1;background:#1B1B1D;border-radius:12px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.ev .sub .nm{font-family:'Anton',sans-serif;color:#fff;font-size:14px;letter-spacing:.02em}
+.ev .sub .vl{color:#fff;font-size:18px;font-weight:800}
+
+/* ── Tarjetas de propiedad (lista horizontal) ── */
+.pcard{display:flex;gap:13px;background:var(--card);border:1px solid #ECECEF;border-radius:18px;overflow:hidden;margin-top:14px;align-items:stretch}
+.pimg{width:104px;flex-shrink:0;background:#DCE3E8;display:flex;align-items:center;justify-content:center;color:#9DB0BC;position:relative}
+.pimg .badge{position:absolute;left:8px;top:8px;background:#fff;border-radius:99px;padding:4px 9px;display:flex;align-items:center;gap:5px}
+.pimg .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--acc)}
+.pimg .badge span{font-size:10.5px;font-weight:700;color:var(--acc)}
+.pinfo{flex:1;padding:13px 13px 13px 0;display:flex;flex-direction:column;justify-content:center}
+.pinfo .ptitle{font-size:16px;font-weight:800;letter-spacing:-.01em;margin:0}
+.pinfo .ploc{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);margin-top:5px;font-weight:500}
+.pinfo .pdet{font-size:12px;color:var(--muted2);margin-top:6px;font-weight:500}
+.pinfo .pprice{font-size:16px;font-weight:800;color:var(--acc);margin-top:8px}
+
+/* ── Lista de filas ── */
+.list{margin-top:14px;background:var(--card);border:1px solid #ECECEF;border-radius:18px;overflow:hidden}
+.li{display:flex;align-items:center;gap:13px;padding:15px 15px;border-bottom:1px solid #F0F0F2}
+.li:last-child{border-bottom:none}
+.li .th{width:44px;height:44px;border-radius:12px;background:#ECEDFB;color:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.li .tx{flex:1;min-width:0}
+.li .t1{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.li .t2{font-size:12.5px;color:var(--muted2);margin-top:2px;font-weight:600}
+.li .t2.ok{color:#1F8A4C}
+.li .t2.warn{color:#B5601C}
+.li .acv{color:#C5C5CC}
+
+/* ── Chips de filtro ── */
+.chips{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:99px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--muted)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* ── Grid de módulos (Más) ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.gtile{background:var(--card);border:1px solid #ECECEF;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:104px}
+.gtile .gi{width:42px;height:42px;border-radius:12px;background:#ECEDFB;color:var(--acc);display:flex;align-items:center;justify-content:center}
+.gtile .gl{font-size:14px;font-weight:800;letter-spacing:-.01em}
+.gtile .gs{font-size:11.5px;color:var(--muted2);font-weight:500;margin-top:-6px}
+
+/* ── Resultado AVM ── */
+.result{background:var(--card);border:1px solid #ECECEF;border-radius:20px;padding:20px 18px;margin-top:16px}
+.result .rl{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.result .rv{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.result .rv small{font-size:15px;color:var(--muted);font-weight:600}
+.result .rrow{display:flex;justify-content:space-between;margin-top:16px;border-top:1px solid #F0F0F2;padding-top:14px}
+.result .rrow .k{font-size:12px;color:var(--muted);font-weight:600}
+.result .rrow .v{font-size:15px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums}
